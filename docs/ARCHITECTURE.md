@@ -53,6 +53,8 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 **Triáž dovedností podle jiného kritéria než „co používám".** Šablona se neptá, co konkrétní člověk za měsíc použil — ptá se, co potřebuje cizí čerstvá instance první den, aby byla soběstačná (princip P13). Výsledek: 18 dovedností — 9 baseline z pact-starteru, 1 sklizeň z existující instance (`git-safe-change`), 4 wizard/údržba, 4 RPI. Kompletní přehled i s odůvodněním v `1_Abilities/REGISTRY.md` a v pracovních souborech review.
 
+**Routing je data, a data se ladí (P3).** Pole `description` v každém `SKILL.md` rozhoduje, kdy se dovednost aktivuje — ale popisy v týhle šabloně jsou psané **obecně a záměrně nevyladěné**. Šablona neví, kdo ji naklonuje, jakým jazykem mluví nebo jakou frází si o věc řekne, takže spouštěcí fráze v `description` jsou nutně kompromis, ne finální stav. `pact-setup` (krok 8) proto vede nového uživatele k tomu, aby si u dovedností, které ho zajímají, popis rovnou doladil na vlastní slovník — a `scope-review` později kontroluje, jestli dovednost, která nikdy nevystřelila, nemá problém v obsahu, nebo jen ve špatně trefeném popisu. Routing se nekazí jednou při stavbě šablony; udržuje se průběžně.
+
 ## RPI — tři poznámky
 
 Čtyři dovednosti (`rpi-research`, `rpi-plan`, `rpi-implement`, `rpi-review`) jsou adaptací metodiky Research → Plan → Implement → Review, zdokumentované v `microsoft/hve-core`. Tři věci, které je potřeba přiznat na rovinu:
