@@ -63,6 +63,10 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 **(c) Vyčištění kontextu mezi fázemi je nejkřehčí článek celé metody.** Je to jediný krok, který nezajistí ani agent (nemá důvod sám ukončit konverzaci), ani `AGENTS.md` (může jen připomenout, ne vynutit). Když ho uživatel vynechá, RPI degraduje zpátky na řetěz promptů v jedné konverzaci — tedy přesně na to, co nahrazovalo staré `RECIPES.md` z pact-starteru — a většina přínosu (nezávislé ověření každé fáze) zmizí. Každá ze čtyř dovedností na to proto upozorňuje samostatně, ne jen jednou v `AGENTS.md`.
 
+## Zvážené a vědomě nepostavené
+
+**`daily-git-sync`** — skript pro automatický commit a push, doložený jako path-agnostický nástroj v existující instanci, ze které šablona čerpala jako zdrojový materiál (naplňuje požadavek na git a zálohování, viz `docs/DUAL-ROOT.md` a princip P11). Do PACT-2.0 se **vědomě nepřenesl**: žádná fáze F0–F7 ho nezmiňuje, je to rozšíření rozsahu, ne položka triáže, a automatický commit + push na cizím stroji je riziko, u kterého se chyba pozná pozdě. `daily-tidy` (`1_Abilities/skills/daily-tidy/`) dělá totéž vědomě a na vyzvání uživatele, ne automaticky na pozadí. Je to kandidát na doplnění, ne zapomenutá položka — pokud budoucí revize dojde k tomu, že riziko stojí za to, `daily-git-sync` je hotový vzor, ze kterého se dá vyjít.
+
 ## Vědomá omezení
 
 | Omezení | Proč |
