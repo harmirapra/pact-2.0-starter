@@ -72,6 +72,33 @@ udělej z vlastní iniciativy, bez čekání na vyzvání:
    `architecture.md`.
 3. Nahlas uživateli krátké shrnutí toho, co se změnilo.
 
+## RPI — Research → Plan → Implement → Review
+
+Čtyři dovednosti (`rpi-research`, `rpi-plan`, `rpi-implement`, `rpi-review`,
+v `1_Abilities/skills/`) nahrazují řetěz promptů v jedné konverzaci
+strukturovaným postupem se čtyřmi oddělenými fázemi a artefakty na disku
+v `0_Projects/<projekt>/rpi/`.
+
+**Kdy RPI a kdy rovnou rychlá úprava:**
+
+| RPI | Rychlá úprava |
+|---|---|
+| změna zasahuje víc souborů | překlep |
+| učíš se nový vzor nebo API | přidání logu |
+| jsou v tom externí závislosti | refaktor pod 50 řádků |
+| zadání není jasné | změna je zjevná |
+
+Pravidlo palce: *musíš něčemu rozumět, než to implementuješ? → RPI.*
+
+**Když zadání odpovídá profilu RPI, navrhni RPI a počkej na rozhodnutí —
+dřív než začneš psát kód.** Neaplikuj tiše ani jednu variantu sám;
+uživatel má vždycky vidět, že se rozhoduje.
+
+Mezi fázemi **vyčisti kontext** (nová konverzace nebo `/clear`). Je to
+jediný krok RPI, který nezajistí ani agent sám, ani tenhle soubor — bez
+něj RPI degraduje zpátky na řetěz promptů v jedné konverzaci a většina
+přínosu zmizí.
+
 ## Tvrdá pravidla
 
 1. Při psaní jakéhokoli textu za uživatele načti `2_Context/identity/tone-of-voice/`.
