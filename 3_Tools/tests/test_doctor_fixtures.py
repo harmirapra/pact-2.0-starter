@@ -28,6 +28,30 @@ class TestFreshFixture(unittest.TestCase):
         self.assertIn("pact-setup", result.stdout)
         self.assertNotIn("FAIL", result.stdout)
 
+    def test_doctor_warns_when_context_files_are_missing(self):
+        """Prazdna slozka drive prosla jako 'kontext je vyplneny'."""
+        for f in (self.repo / "2_Context" / "identity").rglob("*"):
+            if f.is_file():
+                f.unlink()
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("chybí soubory kontextu", result.stdout)
+        self.assertIn("2_Context/identity", result.stdout)
+        self.assertNotIn("kontext je vyplněný", result.stdout)
+        self.assertNotIn("FAIL", result.stdout)
+
+    def test_doctor_warns_when_context_directory_does_not_exist(self):
+        import shutil
+
+        shutil.rmtree(self.repo / "2_Context" / "goals")
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("chybí soubory kontextu", result.stdout)
+        self.assertIn("2_Context/goals", result.stdout)
+        self.assertNotIn("FAIL", result.stdout)
+
 
 class TestFilledFixture(unittest.TestCase):
     def setUp(self):

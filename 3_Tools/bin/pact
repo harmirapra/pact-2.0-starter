@@ -706,17 +706,35 @@ def _check_secrets():
 
 
 def _check_placeholders():
+    """Kontext: chybejici soubory maji prednost pred placeholdery.
+
+    Prazdna nebo chybejici slozka drive prosla jako OK ("kontext je vyplneny"),
+    protoze kontrola merila jen obsah existujicich souboru. Cerstvy klon by tak
+    hlasil hotovo, i kdyz v nem kontext vubec nebyl.
+    """
     targets = [CONTEXT_DIR / "identity", CONTEXT_DIR / "goals", CONTEXT_DIR / "expertise"]
+
+    missing = []
+    has_placeholder = False
     for target in targets:
-        if not target.exists():
+        files = [f for f in target.rglob("*") if f.is_file()] if target.exists() else []
+        if not files:
+            missing.append(target.name)
             continue
-        for f in target.rglob("*"):
-            if f.is_file():
-                try:
-                    if "[DOPLNIT" in f.read_text(encoding="utf-8", errors="ignore"):
-                        return "WARN", "kontext obsahuje placeholdery — spusť dovednost pact-setup"
-                except OSError:
-                    continue
+        for f in files:
+            try:
+                if "[DOPLNIT" in f.read_text(encoding="utf-8", errors="ignore"):
+                    has_placeholder = True
+            except OSError:
+                continue
+
+    if missing:
+        return "WARN", (
+            "chybí soubory kontextu v 2_Context/%s — obnov je ze šablony "
+            "nebo spusť dovednost pact-setup" % ", 2_Context/".join(missing)
+        )
+    if has_placeholder:
+        return "WARN", "kontext obsahuje placeholdery — spusť dovednost pact-setup"
     return "OK", "kontext je vyplněný"
 
 
