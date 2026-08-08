@@ -1,0 +1,6 @@
+.env
+.agents/
+.claude/
+.github/
+__pycache__/
+.DS_Store
