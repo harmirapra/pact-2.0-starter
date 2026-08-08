@@ -149,6 +149,37 @@ class TestHomeInstall(BaseSandboxTest):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse((self.home / ".copilot").exists())
 
+    def test_deleted_manifest_path_is_not_silently_restored(self):
+        """Vada F/N-8 -- vedome smazany soubor z manifestu se nesmi tise
+        obnovit pri dalsim 'sync' bez potvrzeni."""
+        self._scope_with_about_me()
+        r1 = run_pact(self.repo, "sync", "--yes", home=self.home)
+        self.assertEqual(r1.returncode, 0, r1.stderr)
+        target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
+        self.assertTrue(target.is_file())
+
+        target.unlink()
+
+        r2 = run_pact(self.repo, "sync", home=self.home)
+        self.assertEqual(r2.returncode, 0, r2.stderr)
+        self.assertIn("nepotvrzeno", r2.stdout)
+        self.assertFalse(target.exists())
+
+        manifest = json.loads((self.home / ".pact-manifest.json").read_text(encoding="utf-8"))
+        self.assertIn(str(Path(".copilot") / "instructions" / "identity" / "about-me.md"), manifest["files"])
+
+    def test_deleted_manifest_path_restored_with_yes(self):
+        """--yes potvrzuje i obnoveni vedome smazane cesty -- rozsiruje
+        pojistku FIX01, neruší ji."""
+        self._scope_with_about_me()
+        run_pact(self.repo, "sync", "--yes", home=self.home)
+        target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
+        target.unlink()
+
+        r2 = run_pact(self.repo, "sync", "--yes", home=self.home)
+        self.assertEqual(r2.returncode, 0, r2.stderr)
+        self.assertTrue(target.is_file())
+
 
 class TestProjectLifecycle(BaseSandboxTest):
     def test_new_single_root(self):

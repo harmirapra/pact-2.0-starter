@@ -355,11 +355,16 @@ def _sha256(path):
 
 
 def materialize_home(root, plan, interactive, confirmed, manifest_path):
-    """Zapise plan do $HOME. Kazda cesta, na kterou pact jeste nikdy nezapisoval
-    (nova, nebo cizi soubor, ktery nevznikl predchozim pact sync), potrebuje
-    potvrzeni -- 'confirmed' (--yes) ho da rovnou pro cely beh, jinak se v
-    interaktivnim behu zepta jednou souhrnne za vsechny cesty, a v
-    neinteraktivnim behu bez potvrzeni se takove cesty preskoci beze zapisu."""
+    """Zapise plan do $HOME. Cesta se zapise automaticky bez ptani jen kdyz je
+    soucasne v manifestu (pact uz na ni driv zapsal) A skutecne existuje na
+    disku. Kazda jina cesta potrebuje potvrzeni:
+    - nova cesta -- pact sem jeste nikdy nezapisoval,
+    - cizi soubor -- existuje, ale nevznikl pactem,
+    - drivejsi zapis pactem, na disku ted chybi -- uzivatel ho vedome
+      smazal (vada F/N-8); tise se neobnovi.
+    'confirmed' (--yes) potvrdi vsechny tri kategorie rovnou pro cely beh,
+    jinak se v interaktivnim behu zepta jednou souhrnne, a v neinteraktivnim
+    behu bez potvrzeni se takove cesty preskoci beze zapisu."""
     manifest = {"files": []}
     if manifest_path.is_file():
         try:
@@ -372,7 +377,7 @@ def materialize_home(root, plan, interactive, confirmed, manifest_path):
     for rel, src in plan:
         dest = root / rel
         rel_str = str(rel)
-        if rel_str in known:
+        if rel_str in known and dest.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
             written.append(dest)
@@ -383,9 +388,14 @@ def materialize_home(root, plan, interactive, confirmed, manifest_path):
         if confirmed:
             approved = pending
         elif interactive:
-            print("Poprvé se zapisuje do těchto cest v $HOME:")
+            print("Tyhle cesty v $HOME potřebují potvrzení:")
             for rel_str, _src, dest in pending:
-                marker = " (přepíše existující soubor)" if dest.exists() else ""
+                if rel_str in known:
+                    marker = " (dřív zapsáno pactem, teď na disku chybí — obnovit?)"
+                elif dest.exists():
+                    marker = " (přepíše existující soubor)"
+                else:
+                    marker = " (nová cesta)"
                 print(f"  ~/{rel_str}{marker}")
             answer = input("Zapsat tyto soubory? [y/N]: ").strip().lower()
             approved = pending if answer == "y" else []
@@ -822,20 +832,39 @@ def _dir_signature(path):
 
 
 def _check_adapters():
+    """Rozlisuje dve situace, ktere driv splyvaly do jedne FAIL (vada D):
+    adaptery chybi uplne (cerstvy klon, nikdy neprobehl 'sync') je WARN --
+    nenastaveno, ne rozbito. Adaptery, ktere existuji a lisi se od
+    kanonickeho zdroje -- nebo existuji jen castecne -- jsou skutecna
+    nekonzistence, FAIL."""
     try:
         with tempfile.TemporaryDirectory() as tmp:
             build_repo_adapters(Path(tmp))
+            missing = []
+            mismatched = []
             for adapter in (".agents", ".claude", ".github"):
                 desired = _dir_signature(Path(tmp) / adapter / "skills")
                 actual = _dir_signature(REPO_ROOT / adapter / "skills")
-                if desired != actual:
-                    return "FAIL", f"{adapter}/skills neodpovídá kanonickému zdroji — spusť pact sync"
+                if actual is None:
+                    missing.append(f"{adapter}/skills")
+                elif desired != actual:
+                    mismatched.append(f"{adapter}/skills")
             desired_ci = (Path(tmp) / ".github" / "copilot-instructions.md").read_text(encoding="utf-8")
             actual_ci_path = REPO_ROOT / ".github" / "copilot-instructions.md"
-            if not actual_ci_path.is_file() or actual_ci_path.read_text(encoding="utf-8") != desired_ci:
-                return "FAIL", ".github/copilot-instructions.md neodpovídá AGENTS.md — spusť pact sync"
+            if not actual_ci_path.is_file():
+                missing.append(".github/copilot-instructions.md")
+            elif actual_ci_path.read_text(encoding="utf-8") != desired_ci:
+                mismatched.append(".github/copilot-instructions.md")
     except PactError as exc:
         return "FAIL", f"nevalidní frontmatter: {exc}"
+
+    total_targets = 4  # .agents/skills, .claude/skills, .github/skills, .github/copilot-instructions.md
+    if mismatched:
+        return "FAIL", f"{', '.join(mismatched)} neodpovídá kanonickému zdroji — spusť pact sync"
+    if len(missing) == total_targets:
+        return "WARN", "adaptéry ještě nebyly vygenerovány — spusť pact sync"
+    if missing:
+        return "FAIL", f"{', '.join(missing)} chybí, ostatní adaptéry existují — nekonzistentní stav, spusť pact sync"
     return "OK", "generované adaptéry odpovídají kanonickému zdroji"
 
 
@@ -953,7 +982,10 @@ def build_parser():
     p_sync.add_argument("--dry-run", action="store_true", help="vypíše plánované operace, nezapisuje")
     p_sync.add_argument(
         "--yes", action="store_true",
-        help="potvrdí zápis cest v $HOME, na které pact sync ještě nikdy nezapisoval (nové i cizí soubory)",
+        help=(
+            "potvrdí zápis cest v $HOME, které potřebují potvrzení (nové, cizí, "
+            "nebo dřív zapsané pactem a mezitím smazané)"
+        ),
     )
     p_sync.set_defaults(func=cmd_sync)
 

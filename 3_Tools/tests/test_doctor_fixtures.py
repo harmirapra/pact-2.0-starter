@@ -1,12 +1,17 @@
 """L3 -- pact doctor jako jediny kontrolor, overovany nad fixturami
-fixtures/fresh/ (nedotcena sablona) a fixtures/filled/ (fiktivne vyplnena)."""
+fixtures/fresh/ (nedotcena sablona) a fixtures/filled/ (fiktivne vyplnena),
+a nad skutecnym 'git clone' tohoto repa -- kotva ve skutecnosti, kterou
+zastupne fixtury nemohou nahradit (vada E, fix-brief-02)."""
 
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from helpers import make_sandbox, run_pact, git_init_repo, git_add_commit
+from helpers import make_sandbox, add_skill, run_pact, git_init_repo, git_add_commit
+
+# Koren tohoto repa (PACT-2.0), ne sandboxu -- pro test proti skutecnemu klonu.
+REAL_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class TestFreshFixture(unittest.TestCase):
@@ -150,6 +155,72 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
                     any(opt in result.stdout for opt in options),
                     f"chybí výstup pro kontrolu '{label}' (3.7): {result.stdout}",
                 )
+
+
+class TestNeverSynced(unittest.TestCase):
+    """Vada D -- adaptery, ktere jeste nikdy neexistovaly (pred prvnim
+    'pact sync'), musi hlasit WARN, ne FAIL. Na rozdil od TestFreshFixture
+    tenhle sandbox 'sync' v setUp vubec nespousti."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp_path = Path(self._tmp.name)
+        self.repo = make_sandbox(self.tmp_path)
+        add_skill(self.repo, "example-skill")
+        self.home = self.tmp_path / "home"
+        self.home.mkdir()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_missing_adapters_before_first_sync_warn_not_fail(self):
+        self.assertFalse((self.repo / ".agents").exists())
+        self.assertFalse((self.repo / ".claude").exists())
+        self.assertFalse((self.repo / ".github").exists())
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("FAIL", result.stdout)
+        self.assertIn("adaptéry ještě nebyly vygenerovány", result.stdout)
+
+    def test_partially_synced_adapters_are_fail_not_warn(self):
+        """Castecny/rozjety stav (nekonzistence) neni totez jako 'nenastaveno'."""
+        run_pact(self.repo, "sync", "--yes", home=self.home)
+        import shutil
+
+        shutil.rmtree(self.repo / ".claude")
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("FAIL", result.stdout)
+        self.assertIn(".claude/skills", result.stdout)
+
+
+class TestRealGitClone(unittest.TestCase):
+    """Vada E -- kotva ve skutecnosti. Fixtura fresh/ nema 1_Abilities/skills/,
+    takze kontrola adapteru nema co porovnavat a projde i nad produktem,
+    ktery ve skutecnem klonu pada (N-11). 'git clone' zaruci, ze se
+    gitignorovane adaptery neprenesou -- presne ta podminka, kterou
+    fixtura postrada."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp_path = Path(self._tmp.name)
+        self.clone = self.tmp_path / "clone"
+        subprocess.run(
+            ["git", "clone", "-q", str(REAL_REPO_ROOT), str(self.clone)],
+            check=True, timeout=60,
+        )
+        self.home = self.tmp_path / "home"
+        self.home.mkdir()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_fresh_clone_doctor_has_no_fail(self):
+        result = run_pact(self.clone, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("FAIL", result.stdout)
 
 
 if __name__ == "__main__":
