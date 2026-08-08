@@ -1,0 +1,891 @@
+#!/usr/bin/env python3
+"""pact -- CLI pro PACT workspace. Stdlib only, zadne externi zavislosti."""
+
+import argparse
+import datetime
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+SKILLS_DIR = REPO_ROOT / "1_Abilities" / "skills"
+REGISTRY_PATH = REPO_ROOT / "1_Abilities" / "REGISTRY.md"
+AGENTS_MD = REPO_ROOT / "AGENTS.md"
+CONTEXT_DIR = REPO_ROOT / "2_Context"
+SCOPE_YML = CONTEXT_DIR / "scope.yml"
+PROJECTS_DIR = REPO_ROOT / "0_Projects"
+TEMPLATE_PROJECT = PROJECTS_DIR / "_TEMPLATE" / "PROJECT.md"
+
+MANIFEST_NAME = ".pact-manifest.json"
+
+FALLBACK_PROJECT_TEMPLATE = """\
+<!-- TEMPLATE:single-root -->
+---
+name: {{name}}
+type: single-root
+status: active
+---
+
+# {{name}}
+
+[DOPLNIT: popis projektu]
+
+## Otevřené otázky
+
+- [DOPLNIT]
+<!-- /TEMPLATE -->
+
+<!-- TEMPLATE:dual-root -->
+---
+name: {{name}}
+type: dual-root
+status: active
+code:
+  path: {{code_path}}
+  remote: {{code_remote}}
+  visibility: {{code_visibility}}
+---
+
+# {{name}}
+
+[DOPLNIT: popis projektu]
+
+## Dual root
+
+Kódová část tohoto projektu není v PACT. Leží v:
+{{code_path}}
+
+- Do PACT nikdy nekopíruj kód.
+- Do kódového repa nikdy nekopíruj obsah 2_Context/.
+- Pokud na tu cestu nedosáhneš, ŘEKNI MI TO a navrhni, jak si v prostředí,
+  ve kterém běžíš, rozšířit dosah. NEHÁDEJ obsah.
+
+## Kontext vyšší úrovně
+
+Tento projekt navíc používá:
+- [DOPLNIT]
+
+Pokud na ně nedosáhneš, ŘEKNI MI TO. Nepokračuj bez nich.
+
+## Otevřené otázky
+
+- [DOPLNIT]
+<!-- /TEMPLATE -->
+"""
+
+
+class PactError(Exception):
+    def __init__(self, message, code=1):
+        super().__init__(message)
+        self.code = code
+
+
+# ---------------------------------------------------------------------------
+# Lehky YAML parser (jen podmnozina: skalary, slozene retezce '>'/'|',
+# seznamy retezcu, jedno uroven vnorenych mapovani). Zadne externi knihovny.
+# ---------------------------------------------------------------------------
+
+def _strip_quotes(s):
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in "\"'":
+        return s[1:-1]
+    return s
+
+
+def _strip_comment(line):
+    # odstrani komentar '# ...', jen kdyz # nasleduje po bilem znaku nebo je na zacatku
+    out = []
+    i = 0
+    while i < len(line):
+        if line[i] == "#" and (i == 0 or line[i - 1] in " \t"):
+            break
+        out.append(line[i])
+        i += 1
+    return "".join(out).rstrip()
+
+
+def _consume_block(lines, i, base_indent):
+    block = []
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip():
+            block.append("")
+            i += 1
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent <= base_indent:
+            break
+        block.append(line[base_indent + 2:] if len(line) >= base_indent + 2 else line.strip())
+        i += 1
+    while block and block[-1] == "":
+        block.pop()
+    return block, i
+
+
+def _parse_block(lines, i, indent):
+    if i < len(lines) and lines[i].strip().startswith("- "):
+        items = []
+        while i < len(lines):
+            line = lines[i]
+            if not line.strip():
+                i += 1
+                continue
+            cur = len(line) - len(line.lstrip(" "))
+            if cur != indent or not line.strip().startswith("- "):
+                break
+            items.append(_strip_quotes(line.strip()[2:].strip()))
+            i += 1
+        return items, i
+
+    result = {}
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip():
+            i += 1
+            continue
+        cur = len(line) - len(line.lstrip(" "))
+        if cur < indent:
+            break
+        if cur > indent:
+            raise PactError(f"neocekavane odsazeni na radku: {line!r}")
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$", line.strip())
+        if not m:
+            raise PactError(f"nevalidni radek frontmatteru: {line!r}")
+        key, rest = m.group(1), m.group(2).strip()
+        i += 1
+        if rest in (">", "|", ">-", "|-"):
+            fold = rest[0] == ">"
+            block, i = _consume_block(lines, i, cur)
+            if fold:
+                value = " ".join(t for t in (b.strip() for b in block) if t)
+            else:
+                value = "\n".join(block)
+        elif rest == "[]":
+            value = []
+        elif rest == "":
+            if i < len(lines) and lines[i].strip():
+                nested_indent = len(lines[i]) - len(lines[i].lstrip(" "))
+                if nested_indent > cur:
+                    value, i = _parse_block(lines, i, nested_indent)
+                else:
+                    value = None
+            else:
+                value = None
+        else:
+            value = _strip_quotes(rest)
+        result[key] = value
+    return result, i
+
+
+def parse_yaml_lite(text):
+    lines = [_strip_comment(l) for l in text.split("\n")]
+    value, _ = _parse_block(lines, 0, 0)
+    return value
+
+
+def split_frontmatter(text):
+    if not text.startswith("---"):
+        return None, text
+    lines = text.split("\n")
+    if lines[0].strip() != "---":
+        return None, text
+    end = None
+    for idx in range(1, len(lines)):
+        if lines[idx].strip() == "---":
+            end = idx
+            break
+    if end is None:
+        return None, text
+    fm_text = "\n".join(lines[1:end])
+    body = "\n".join(lines[end + 1:])
+    return fm_text, body
+
+
+def read_frontmatter(path):
+    text = path.read_text(encoding="utf-8")
+    fm_text, body = split_frontmatter(text)
+    if fm_text is None:
+        raise PactError(f"chybejici frontmatter: {path}")
+    try:
+        data = parse_yaml_lite(fm_text)
+    except PactError as exc:
+        raise PactError(f"nevalidni frontmatter v {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise PactError(f"nevalidni frontmatter v {path}")
+    return data, body
+
+
+# ---------------------------------------------------------------------------
+# Skill validace + registr
+# ---------------------------------------------------------------------------
+
+def iter_skill_dirs():
+    if not SKILLS_DIR.is_dir():
+        return
+    for entry in sorted(SKILLS_DIR.iterdir()):
+        if entry.is_dir():
+            yield entry
+
+
+def validate_skills():
+    """Vrati seznam (name, dir) pro validni skilly. Vyhodi PactError na prvni chybu."""
+    result = []
+    for skill_dir in iter_skill_dirs():
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.is_file():
+            raise PactError(f"chybi SKILL.md ve slozce: {skill_dir}")
+        data, _ = read_frontmatter(skill_md)
+        name = data.get("name")
+        description = data.get("description")
+        if not name or not description:
+            raise PactError(f"SKILL.md musi mit 'name' a 'description': {skill_md}")
+        if name != skill_dir.name:
+            raise PactError(
+                f"'name' ({name}) neodpovida nazvu slozky ({skill_dir.name}): {skill_md}"
+            )
+        result.append((name, skill_dir, description))
+    return result
+
+
+def cmd_registry(args):
+    try:
+        skills = validate_skills()
+    except PactError as exc:
+        print(f"CHYBA: {exc}", file=sys.stderr)
+        return 1
+
+    today = datetime.date.today().isoformat()
+    lines = [
+        "# Registry dovedností",
+        "",
+        f"> Generováno {today} příkazem `pact registry` — needituj ručně.",
+        "",
+        "| Název | Popis | Cesta |",
+        "|---|---|---|",
+    ]
+    for name, skill_dir, description in sorted(skills, key=lambda t: t[0]):
+        rel = skill_dir.relative_to(REPO_ROOT)
+        desc = description.replace("\n", " ").replace("|", "\\|")
+        lines.append(f"| `{name}` | {desc} | `{rel}/` |")
+    REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REGISTRY_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"Vygenerováno: {REGISTRY_PATH.relative_to(REPO_ROOT)} ({len(skills)} dovedností)")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# pact sync
+# ---------------------------------------------------------------------------
+
+COPILOT_INSTRUCTIONS_BODY = """\
+# Instrukce pro GitHub Copilot v tomto repozitáři
+
+> GENEROVÁNO příkazem `pact sync` — needituj ručně. Zdroj: `AGENTS.md`.
+> Tenhle soubor záměrně nic neopisuje, jen ukazuje, kde to je: adaptér, který
+> znalost opisuje, zastará; adaptér, který na ni ukazuje, nezastará nikdy.
+
+Přečti **`AGENTS.md`** (root) — jediný zdroj pravdy pro tento repozitář.
+"""
+
+
+def build_repo_adapters(dest_root):
+    """Postavi generovane adaptery (.agents, .claude, .github) pod dest_root.
+    Vyhodi PactError pri nevalidnich skillech."""
+    skills = validate_skills()
+    for adapter in (".agents", ".claude", ".github"):
+        skills_dir = dest_root / adapter / "skills"
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        for _name, skill_dir, _desc in skills:
+            shutil.copytree(skill_dir, skills_dir / skill_dir.name, dirs_exist_ok=True)
+    github_dir = dest_root / ".github"
+    github_dir.mkdir(parents=True, exist_ok=True)
+    (github_dir / "copilot-instructions.md").write_text(COPILOT_INSTRUCTIONS_BODY, encoding="utf-8")
+    return skills
+
+
+def home_plan():
+    """Vrati seznam (rel_path_pod_home, zdrojovy_soubor) pro instalaci do $HOME,
+    podle 2_Context/scope.yml. Prazdny seznam, pokud scope.yml chybi."""
+    if not SCOPE_YML.is_file():
+        return []
+    data = parse_yaml_lite(SCOPE_YML.read_text(encoding="utf-8"))
+    user_level = (data or {}).get("user_level") or {}
+    context_entries = user_level.get("context") or []
+    skill_entries = user_level.get("skills") or []
+
+    plan = []
+    for entry in context_entries:
+        src = CONTEXT_DIR / entry
+        if src.is_dir():
+            for f in sorted(src.rglob("*")):
+                if f.is_file():
+                    rel = f.relative_to(CONTEXT_DIR)
+                    plan.append((Path(".copilot/instructions") / rel, f))
+                    plan.append((Path(".claude/rules") / rel, f))
+        elif src.is_file():
+            rel = src.relative_to(CONTEXT_DIR)
+            plan.append((Path(".copilot/instructions") / rel, src))
+            plan.append((Path(".claude/rules") / rel, src))
+        else:
+            raise PactError(f"scope.yml odkazuje na neexistujici cestu: {entry}")
+
+    for skill_name in skill_entries:
+        src = SKILLS_DIR / skill_name
+        if not src.is_dir():
+            raise PactError(f"scope.yml odkazuje na neexistujici dovednost: {skill_name}")
+        for f in sorted(src.rglob("*")):
+            if f.is_file():
+                rel = f.relative_to(SKILLS_DIR)
+                for ns in (".agents/skills", ".copilot/skills", ".claude/skills"):
+                    plan.append((Path(ns) / rel, f))
+
+    return plan
+
+
+def _sha256(path):
+    h = hashlib.sha256()
+    h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def materialize_home(root, plan, interactive, manifest_path):
+    manifest = {"files": []}
+    if manifest_path.is_file():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            manifest = {"files": []}
+    known = set(manifest.get("files", []))
+    written = []
+    skipped = []
+    for rel, src in plan:
+        dest = root / rel
+        rel_str = str(rel)
+        if dest.exists() and rel_str not in known:
+            if interactive:
+                answer = input(f"Přepsat cizí soubor {dest}? [y/N]: ").strip().lower()
+            else:
+                answer = ""
+            if answer != "y":
+                skipped.append(dest)
+                continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        known.add(rel_str)
+        written.append(dest)
+    manifest["files"] = sorted(known)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return written, skipped
+
+
+def cmd_sync(args):
+    try:
+        if args.dry_run:
+            with tempfile.TemporaryDirectory() as tmp:
+                skills = build_repo_adapters(Path(tmp))
+            plan = home_plan()
+        else:
+            skills = build_repo_adapters(REPO_ROOT)
+            plan = home_plan()
+    except PactError as exc:
+        print(f"CHYBA: {exc}", file=sys.stderr)
+        return 1
+
+    if args.dry_run:
+        print("Plánované operace (--dry-run, nic se nezapisuje):")
+        for adapter in (".agents/skills", ".claude/skills", ".github/skills"):
+            print(f"  regenerovat {adapter}/ ({len(skills)} dovedností)")
+        print("  regenerovat .github/copilot-instructions.md")
+        if plan:
+            targets = sorted({str(rel) for rel, _ in plan})
+            print(f"  instalovat do $HOME: {len(targets)} souborů")
+            for t in targets[:20]:
+                print(f"    ~/{t}")
+            if len(targets) > 20:
+                print(f"    ... a {len(targets) - 20} dalších")
+        else:
+            print("  $HOME: nic k instalaci (scope.yml chybí nebo je prázdný)")
+        return 0
+
+    print(f"Vygenerováno {len(skills)} dovedností do .agents/, .claude/, .github/")
+    print("Vygenerováno .github/copilot-instructions.md")
+
+    if plan:
+        home = Path.home()
+        written, skipped = materialize_home(home, plan, sys.stdin.isatty(), home / MANIFEST_NAME)
+        print(f"$HOME: zapsáno {len(written)} souborů" + (f", přeskočeno {len(skipped)} (cizí soubory)" if skipped else ""))
+    else:
+        print("$HOME: nic k instalaci (2_Context/scope.yml chybí nebo je prázdný)")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# pact new / link / promote
+# ---------------------------------------------------------------------------
+
+NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
+
+
+def _extract_template_block(template_text, kind):
+    marker_open = f"<!-- TEMPLATE:{kind} -->"
+    marker_close = "<!-- /TEMPLATE -->"
+    start = template_text.find(marker_open)
+    if start == -1:
+        raise PactError(f"šablona neobsahuje blok pro typ '{kind}'")
+    start += len(marker_open)
+    end = template_text.find(marker_close, start)
+    if end == -1:
+        raise PactError(f"šablona má nedokončený blok pro typ '{kind}'")
+    return template_text[start:end].strip("\n") + "\n"
+
+
+def cmd_new(args):
+    name = args.name
+    if not NAME_RE.match(name):
+        print(f"CHYBA: nevalidní název projektu (očekáván kebab-case): {name}", file=sys.stderr)
+        return 2
+
+    project_dir = PROJECTS_DIR / name
+    if project_dir.exists():
+        print(f"CHYBA: projekt už existuje: {project_dir}", file=sys.stderr)
+        return 1
+
+    project_type = args.type
+    interactive = sys.stdin.isatty()
+    if project_type is None:
+        if not interactive:
+            print("CHYBA: chybí --type single-root|dual-root (neinteraktivní běh)", file=sys.stderr)
+            return 2
+        answer = input(
+            "Bude mít tenhle projekt vlastní repozitář vedle PACTu — protože ho chceš "
+            "sdílet, zveřejnit, nebo mu dát vlastní život? Nebo zůstane celý uvnitř "
+            "PACTu? [single-root/dual-root]: "
+        ).strip()
+        project_type = answer if answer in ("single-root", "dual-root") else "single-root"
+
+    code_path = args.code_path or ""
+    code_remote = args.remote or ""
+    code_visibility = args.visibility or ""
+    if project_type == "dual-root":
+        if not code_path:
+            if interactive:
+                code_path = input("Cesta ke kódu: ").strip()
+            code_path = code_path or "[DOPLNIT: cesta ke kódu]"
+        if not code_remote:
+            code_remote = "[DOPLNIT: remote]"
+        if not code_visibility:
+            if interactive:
+                v = input("Viditelnost [public/private]: ").strip()
+                code_visibility = v if v in ("public", "private") else "[DOPLNIT: viditelnost]"
+            else:
+                code_visibility = "[DOPLNIT: viditelnost]"
+
+    template_text = (
+        TEMPLATE_PROJECT.read_text(encoding="utf-8")
+        if TEMPLATE_PROJECT.is_file()
+        else FALLBACK_PROJECT_TEMPLATE
+    )
+    try:
+        block = _extract_template_block(template_text, project_type)
+    except PactError as exc:
+        print(f"CHYBA: {exc}", file=sys.stderr)
+        return 1
+
+    block = (
+        block.replace("{{name}}", name)
+        .replace("{{code_path}}", code_path)
+        .replace("{{code_remote}}", code_remote)
+        .replace("{{code_visibility}}", code_visibility)
+    )
+
+    project_dir.mkdir(parents=True)
+    (project_dir / "PROJECT.md").write_text(block, encoding="utf-8")
+    readme = f"# {name}\n\n[DOPLNIT: popis projektu]\n"
+    (project_dir / "README.md").write_text(readme, encoding="utf-8")
+
+    print(f"Založeno: {project_dir.relative_to(REPO_ROOT)} (typ {project_type})")
+    return 0
+
+
+DUAL_ROOT_BODY_TEMPLATE = """
+## Dual root
+
+Kódová část tohoto projektu není v PACT. Leží v:
+{code_path}
+
+- Do PACT nikdy nekopíruj kód.
+- Do kódového repa nikdy nekopíruj obsah 2_Context/.
+- Pokud na tu cestu nedosáhneš, ŘEKNI MI TO a navrhni, jak si v prostředí,
+  ve kterém běžíš, rozšířit dosah. NEHÁDEJ obsah.
+"""
+
+
+def _dump_frontmatter(data):
+    lines = ["---"]
+    for key, value in data.items():
+        if isinstance(value, dict):
+            lines.append(f"{key}:")
+            for sub_key, sub_value in value.items():
+                lines.append(f"  {sub_key}: {sub_value}")
+        elif isinstance(value, list):
+            lines.append(f"{key}:")
+            for item in value:
+                lines.append(f"  - {item}")
+        else:
+            lines.append(f"{key}: {value}")
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def _is_git_repo(path):
+    return (path / ".git").exists()
+
+
+def _git_remote_url(path):
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(path), "remote", "get-url", "origin"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if out.returncode == 0:
+            return out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return ""
+
+
+def cmd_link(args):
+    project_dir = PROJECTS_DIR / args.projekt
+    project_md = project_dir / "PROJECT.md"
+    if not project_md.is_file():
+        print(f"CHYBA: projekt neexistuje: {args.projekt}", file=sys.stderr)
+        return 1
+
+    try:
+        data, body = read_frontmatter(project_md)
+    except PactError as exc:
+        print(f"CHYBA: {exc}", file=sys.stderr)
+        return 1
+
+    if data.get("type") != "dual-root":
+        print(
+            f"CHYBA: projekt '{args.projekt}' je typu '{data.get('type')}', "
+            "ne 'dual-root'. Použij 'pact promote'.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if not args.code_path:
+        print("CHYBA: chybí --code-path", file=sys.stderr)
+        return 2
+
+    code_path_arg = Path(args.code_path).expanduser()
+    if not code_path_arg.is_absolute():
+        code_path_arg = (Path.cwd() / code_path_arg).resolve()
+    else:
+        code_path_arg = code_path_arg.resolve()
+
+    if not code_path_arg.is_dir():
+        print(f"CHYBA: cesta neexistuje: {code_path_arg}", file=sys.stderr)
+        return 1
+    if not _is_git_repo(code_path_arg):
+        print(f"CHYBA: cesta není git repozitář: {code_path_arg}", file=sys.stderr)
+        return 1
+
+    remote = _git_remote_url(code_path_arg)
+    rel_path = os.path.relpath(code_path_arg, project_dir)
+
+    data["code"] = {"path": rel_path, "remote": remote or "[DOPLNIT: remote]", "visibility": data.get("code", {}).get("visibility", "[DOPLNIT: viditelnost]") if isinstance(data.get("code"), dict) else "[DOPLNIT: viditelnost]"}
+
+    new_body = body
+    if "## Dual root" not in body:
+        new_body = body.rstrip("\n") + "\n" + DUAL_ROOT_BODY_TEMPLATE.format(code_path=rel_path) + "\n"
+
+    project_md.write_text(_dump_frontmatter(data) + "\n" + new_body, encoding="utf-8")
+    print(f"Propojeno: {args.projekt} -> {code_path_arg}")
+
+    if args.workspace:
+        workspaces_dir = REPO_ROOT.parent / "workspaces"
+        workspaces_dir.mkdir(parents=True, exist_ok=True)
+        ws_path = workspaces_dir / f"{args.projekt}.code-workspace"
+        ws_content = {
+            "folders": [
+                {"path": os.path.relpath(REPO_ROOT, workspaces_dir)},
+                {"path": os.path.relpath(code_path_arg, workspaces_dir)},
+            ]
+        }
+        ws_path.write_text(json.dumps(ws_content, indent=2) + "\n", encoding="utf-8")
+        print(f"Vygenerováno: {ws_path}")
+
+    return 0
+
+
+def cmd_promote(args):
+    project_dir = PROJECTS_DIR / args.projekt
+    project_md = project_dir / "PROJECT.md"
+    if not project_md.is_file():
+        print(f"CHYBA: projekt neexistuje: {args.projekt}", file=sys.stderr)
+        return 1
+
+    try:
+        data, body = read_frontmatter(project_md)
+    except PactError as exc:
+        print(f"CHYBA: {exc}", file=sys.stderr)
+        return 1
+
+    if data.get("type") == "dual-root":
+        print(f"Projekt '{args.projekt}' už je typu dual-root, není co dělat.")
+        return 0
+
+    code_path = args.code_path
+    if not code_path:
+        if sys.stdin.isatty():
+            code_path = input("Cesta ke kódu: ").strip()
+        if not code_path:
+            print("CHYBA: chybí --code-path", file=sys.stderr)
+            return 2
+
+    data["type"] = "dual-root"
+    data["code"] = {"path": code_path, "remote": "[DOPLNIT: remote]", "visibility": "[DOPLNIT: viditelnost]"}
+
+    new_body = body
+    if "## Dual root" not in body:
+        new_body = body.rstrip("\n") + "\n" + DUAL_ROOT_BODY_TEMPLATE.format(code_path=code_path) + "\n"
+
+    project_md.write_text(_dump_frontmatter(data) + "\n" + new_body, encoding="utf-8")
+    print(f"Povýšeno na dual-root: {args.projekt}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# pact doctor
+# ---------------------------------------------------------------------------
+
+SECRET_PATTERNS = [
+    re.compile(r"sk-[A-Za-z0-9]{20,}"),
+    re.compile(r"ghp_[A-Za-z0-9]{30,}"),
+    re.compile(r"gho_[A-Za-z0-9]{30,}"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),
+    re.compile(r"(?i)api[_-]?key\s*[:=]\s*['\"][A-Za-z0-9_\-]{16,}['\"]"),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+]
+
+
+def _git_tracked_files():
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-files"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if out.returncode != 0:
+            return []
+        return [REPO_ROOT / p for p in out.stdout.splitlines() if p]
+    except (OSError, subprocess.SubprocessError):
+        return []
+
+
+def _check_secrets():
+    for path in _git_tracked_files():
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for pattern in SECRET_PATTERNS:
+            if pattern.search(text):
+                return "FAIL", f"možné tajemství v {path.relative_to(REPO_ROOT)}"
+    return "OK", "žádné tajemství v trackovaných souborech"
+
+
+def _check_placeholders():
+    targets = [CONTEXT_DIR / "identity", CONTEXT_DIR / "goals", CONTEXT_DIR / "expertise"]
+    for target in targets:
+        if not target.exists():
+            continue
+        for f in target.rglob("*"):
+            if f.is_file():
+                try:
+                    if "[DOPLNIT" in f.read_text(encoding="utf-8", errors="ignore"):
+                        return "WARN", "kontext obsahuje placeholdery — spusť dovednost pact-setup"
+                except OSError:
+                    continue
+    return "OK", "kontext je vyplněný"
+
+
+def _check_git_state():
+    results = []
+    if not (REPO_ROOT / ".git").exists():
+        return results
+    try:
+        status = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "status", "--porcelain"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if status.returncode == 0:
+            if status.stdout.strip():
+                results.append(("WARN", "nezacommitované změny v pracovním stromu"))
+            else:
+                results.append(("OK", "pracovní strom je čistý"))
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        ahead = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "rev-list", "--count", "origin/main..main"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if ahead.returncode == 0:
+            n = int(ahead.stdout.strip() or "0")
+            if n > 0:
+                results.append(("WARN", f"{n} nepushnutých commitů"))
+            else:
+                results.append(("OK", "main je synchronizovaný s origin/main"))
+    except (OSError, subprocess.SubprocessError, ValueError):
+        pass
+    return results
+
+
+def _dir_signature(path):
+    if not path.is_dir():
+        return None
+    sig = []
+    for f in sorted(path.rglob("*")):
+        if f.is_file():
+            sig.append((str(f.relative_to(path)), _sha256(f)))
+    return tuple(sig)
+
+
+def _check_adapters():
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            build_repo_adapters(Path(tmp))
+            for adapter in (".agents", ".claude", ".github"):
+                desired = _dir_signature(Path(tmp) / adapter / "skills")
+                actual = _dir_signature(REPO_ROOT / adapter / "skills")
+                if desired != actual:
+                    return "FAIL", f"{adapter}/skills neodpovídá kanonickému zdroji — spusť pact sync"
+            desired_ci = (Path(tmp) / ".github" / "copilot-instructions.md").read_text(encoding="utf-8")
+            actual_ci_path = REPO_ROOT / ".github" / "copilot-instructions.md"
+            if not actual_ci_path.is_file() or actual_ci_path.read_text(encoding="utf-8") != desired_ci:
+                return "FAIL", ".github/copilot-instructions.md neodpovídá AGENTS.md — spusť pact sync"
+    except PactError as exc:
+        return "FAIL", f"nevalidní frontmatter: {exc}"
+    return "OK", "generované adaptéry odpovídají kanonickému zdroji"
+
+
+def _check_home_scope():
+    try:
+        plan = home_plan()
+    except PactError as exc:
+        return "WARN", f"scope.yml: {exc}"
+    if not plan:
+        return "OK", "$HOME: nic k instalaci"
+    home = Path.home()
+    for rel, src in plan:
+        dest = home / rel
+        if not dest.is_file() or _sha256(dest) != _sha256(src):
+            return "WARN", "$HOME neodpovídá kanonickému zdroji — spusť pact sync"
+    return "OK", "$HOME odpovídá kanonickému zdroji"
+
+
+def _check_dual_root_projects():
+    if not PROJECTS_DIR.is_dir():
+        return "OK", "žádné projekty"
+    for project_dir in sorted(PROJECTS_DIR.iterdir()):
+        if project_dir.name == "_TEMPLATE" or not project_dir.is_dir():
+            continue
+        project_md = project_dir / "PROJECT.md"
+        if not project_md.is_file():
+            continue
+        try:
+            data, _ = read_frontmatter(project_md)
+        except PactError as exc:
+            return "FAIL", f"nevalidní frontmatter: {exc}"
+        code = data.get("code")
+        if data.get("type") == "dual-root" and isinstance(code, dict):
+            path = code.get("path", "")
+            if path.startswith("[DOPLNIT"):
+                continue
+            target = (project_dir / path).resolve()
+            if not target.exists():
+                return "FAIL", f"code.path neexistuje u projektu {project_dir.name}: {path}"
+    return "OK", "všechny code.path existují"
+
+
+def cmd_doctor(args):
+    checks = []
+    checks.append(_check_placeholders())
+    checks.extend(_check_git_state())
+    checks.append(_check_home_scope())
+    checks.append(_check_secrets())
+    try:
+        validate_skills()
+        checks.append(("OK", "frontmatter všech dovedností je validní"))
+    except PactError as exc:
+        checks.append(("FAIL", f"nevalidní/chybějící frontmatter: {exc}"))
+    checks.append(_check_adapters())
+    checks.append(_check_dual_root_projects())
+
+    has_fail = False
+    for status, message in checks:
+        print(f"{status:5s} {message}")
+        if status == "FAIL":
+            has_fail = True
+    return 1 if has_fail else 0
+
+
+# ---------------------------------------------------------------------------
+# argparse
+# ---------------------------------------------------------------------------
+
+def build_parser():
+    parser = argparse.ArgumentParser(prog="pact", description="CLI pro PACT workspace")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_sync = sub.add_parser("sync", help="vygeneruje adaptéry a nainstaluje uživatelskou úroveň do $HOME")
+    p_sync.add_argument("--dry-run", action="store_true", help="vypíše plánované operace, nezapisuje")
+    p_sync.set_defaults(func=cmd_sync)
+
+    p_registry = sub.add_parser("registry", help="vygeneruje 1_Abilities/REGISTRY.md")
+    p_registry.set_defaults(func=cmd_registry)
+
+    p_new = sub.add_parser("new", help="založí nový projekt")
+    p_new.add_argument("name")
+    p_new.add_argument("--type", choices=["single-root", "dual-root"])
+    p_new.add_argument("--code-path")
+    p_new.add_argument("--remote")
+    p_new.add_argument("--visibility", choices=["public", "private"])
+    p_new.set_defaults(func=cmd_new)
+
+    p_link = sub.add_parser("link", help="připojí existující kódový root k projektu typu dual-root")
+    p_link.add_argument("projekt")
+    p_link.add_argument("--code-path")
+    p_link.add_argument("--workspace", action="store_true")
+    p_link.set_defaults(func=cmd_link)
+
+    p_promote = sub.add_parser("promote", help="povýší single-root projekt na dual-root")
+    p_promote.add_argument("projekt")
+    p_promote.add_argument("--code-path")
+    p_promote.set_defaults(func=cmd_promote)
+
+    p_doctor = sub.add_parser("doctor", help="diagnostika stavu repozitáře")
+    p_doctor.set_defaults(func=cmd_doctor)
+
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
