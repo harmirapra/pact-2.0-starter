@@ -31,15 +31,24 @@ Chybějící `git` nebo `gh` není důvod končit — je to WARN, pokračuj a p�
 
 ## Krok 1 — Kdo jsi → `2_Context/identity/about-me.md`
 
-Otevři soubor, projdi placeholdery po sekcích (Kdo jsem / Co dělám / Jak se mnou mluvit / Co má agent vědět, aby neplýtval časem) a ptej se po jedné sekci, ne na všechno najednou.
+**Nejdřív zkontroluj existující identitu, ne až když na ni narazíš náhodou.** Uživatelská úroveň (`~/.claude/CLAUDE.md` a obdobné uživatelem psané soubory) je načtená pořád — je to jistota prostředí, ne výjimka. Než se začneš ptát od nuly:
+
+1. Podívej se, jestli existuje soubor jako `~/.claude/CLAUDE.md` — psaný uživatelem, ne vygenerovaný.
+2. Pokud ano, **ukaž jeho obsah**, navrhni, jak by z něj vycházel `about-me.md`, a **počkej na výslovné potvrzení** — nezapisuj sám, ani po částech.
+3. Pokud uživatel odmítne, nebo takový soubor neexistuje, jdi klasickou cestou: otevři soubor, projdi placeholdery po sekcích (Kdo jsem / Co dělám / Jak se mnou mluvit / Co má agent vědět, aby neplýtval časem) a ptej se po jedné sekci, ne na všechno najednou.
+4. Ať zápis vznikl importem nebo rozhovorem, přidej na konec souboru poznámku o zdroji (např. *„převzato z `~/.claude/CLAUDE.md`, potvrzeno uživatelem [datum]"* nebo *„napsáno v rozhovoru [datum]"*) — za měsíc musí jít poznat, co je čí.
+
+**Tvrdý zákaz zdroje:** `~/.claude/rules/`, `~/.copilot/instructions/`, `~/.agents/skills/` a obdobné cesty **nikdy** nejsou zdroj pro import. Jsou to artefakty vygenerované `pact sync` — čerpat z nich do kanonického zdroje je kruhové a porušuje princip P1 (jeden kanonický zdroj, generované adaptéry). Zdrojem smí být jen soubor, který napsal přímo uživatel.
 
 Připomeň před zápisem: tenhle soubor se instaluje i na uživatelskou úroveň (krok 5) — uvidí ho agent i při práci nad cizím kódem. Kontrolní otázka u citlivějších vět: *chceš, aby tohle agent viděl i mimo PACT?*
 
 ## Krok 2 — Jak píšeš → `2_Context/identity/tone-of-voice/`
 
-Nejpřesnější cesta je dovednost `personal-voice-analyst` — z reálných textů pozná styl líp, než ho uživatel sám popíše. Nabídni ji: *„Mám vytáhnout styl z tvých textů, nebo ho popíšeš rovnou?"*
+Stejně jako v kroku 1: pokud existuje uživatelem psaný soubor na uživatelské úrovni, ze kterého jde styl vytěžit, nabídni import, ukaž návrh a počkej na potvrzení — nikdy nečerpej z `~/.claude/rules/`, `~/.copilot/instructions/` ani obdobných generovaných cest (stejný zákaz jako v kroku 1).
 
-Když textů nemá dost (`personal-voice-analyst` řekne, jestli vzorek stačí), doplň sekce ručně stejně jako u kroku 1.
+Jinak je nejpřesnější cesta dovednost `personal-voice-analyst` — z reálných textů pozná styl líp, než ho uživatel sám popíše. Nabídni ji: *„Mám vytáhnout styl z tvých textů, nebo ho popíšeš rovnou?"*
+
+Když textů nemá dost (`personal-voice-analyst` řekne, jestli vzorek stačí), doplň sekce ručně stejně jako u kroku 1. Zápis vždy doplň poznámkou o zdroji (import / analýza textů / rozhovor).
 
 **Podotázka ke kvalitě výstupu (rozhodnutí O-A, S1):** zeptej se rovnou i na `2_Context/quality-criteria.md` — soubor, který čte dovednost `quality-gate`. Otázka: *„Podle čeho poznáš, že je text nebo výstup dost dobrý? Klidně jen pár vět — cokoli je lepší než nic."* Není to nový krok navíc, je to sesterský soubor tone-of-voice — obojí čte stejná dovednost (`quality-gate`) předtím, než něco schválí.
 
@@ -62,7 +71,13 @@ Vysvětli krátce tři úrovně (`docs/ROZSAH-KONTEXTU.md`, uživatelská/repo/p
 
 Zeptej se, jestli chce rozsah rozšířit už teď (obvykle ne — realokaci za provozu řeší `scope-review`, krok 5 stačí potvrdit výchozí stav).
 
-Spusť `python3 3_Tools/bin/pact sync`. Tohle je jediné místo v celém wizardu, kde se sync spouští **naostro** — je to uživatelova vlastní instance, ne šablona, kterou stavíš ty. Ukaž výstup (kolik souborů se zapsalo do `$HOME`).
+**Než cokoli zapíšeš do `$HOME`, ukaž a počkej na potvrzení:**
+
+1. Spusť `python3 3_Tools/bin/pact sync --dry-run` a ukaž celý výstup — konkrétní soubory a cesty pod `$HOME`, které by se zapsaly.
+2. Zeptej se výslovně, jestli má zapsat naostro. Nepokračuj bez jasného "ano".
+3. Teprve po potvrzení spusť `python3 3_Tools/bin/pact sync --yes` a ukaž výstup (kolik souborů se skutečně zapsalo).
+
+`--yes` smíš použít **jedině** tady a jedině po tomhle potvrzení — je to jediné místo v celém wizardu, kde se sahá mimo repo do uživatelovy skutečné `$HOME` konfigurace. Bez potvrzení `pact sync` nové cesty v `$HOME` sám od sebe přeskočí (viz kontrakt v zadání, sekce 6) — pokud se to stane, není to chyba, jen ti chybí krok 2 výše.
 
 ## Krok 6 — Stack a vrstvy → `2_Context/stack.md`
 

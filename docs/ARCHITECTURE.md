@@ -79,6 +79,7 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 | Custom agents (`.agent.md`, subagenti) nejsou součástí v1 | nejsou přenositelné mezi nástroji |
 | Distribuce pro tým (kolekce, maturity) není postavená | PACT-2.0 je zatím jednouživatelský; hranice distribuovatelné/osobní (P9) je připravená na pozdější rozšíření |
 | Evals a metriky kvality dovedností nejsou součástí | vědomě mimo rozsah v1 |
+| `doctor`, kontrola placeholderů: `OK` neznamená „nastaveno správně" | kontroluje jen nepřítomnost řetězce `[DOPLNIT` — nerozliší obsah napsaný uživatelem od obsahu vymyšleného agentem, a strojově to nejspíš ani nejde (nález N-4, UAT běh 1). `OK` je důkaz nepřítomnosti placeholderů, nic víc. |
 
 ## Zdroje
 

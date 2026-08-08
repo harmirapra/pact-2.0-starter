@@ -354,7 +354,12 @@ def _sha256(path):
     return h.hexdigest()
 
 
-def materialize_home(root, plan, interactive, manifest_path):
+def materialize_home(root, plan, interactive, confirmed, manifest_path):
+    """Zapise plan do $HOME. Kazda cesta, na kterou pact jeste nikdy nezapisoval
+    (nova, nebo cizi soubor, ktery nevznikl predchozim pact sync), potrebuje
+    potvrzeni -- 'confirmed' (--yes) ho da rovnou pro cely beh, jinak se v
+    interaktivnim behu zepta jednou souhrnne za vsechny cesty, a v
+    neinteraktivnim behu bez potvrzeni se takove cesty preskoci beze zapisu."""
     manifest = {"files": []}
     if manifest_path.is_file():
         try:
@@ -363,22 +368,40 @@ def materialize_home(root, plan, interactive, manifest_path):
             manifest = {"files": []}
     known = set(manifest.get("files", []))
     written = []
-    skipped = []
+    pending = []
     for rel, src in plan:
         dest = root / rel
         rel_str = str(rel)
-        if dest.exists() and rel_str not in known:
-            if interactive:
-                answer = input(f"Přepsat cizí soubor {dest}? [y/N]: ").strip().lower()
-            else:
-                answer = ""
-            if answer != "y":
-                skipped.append(dest)
-                continue
+        if rel_str in known:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            written.append(dest)
+        else:
+            pending.append((rel_str, src, dest))
+
+    if pending:
+        if confirmed:
+            approved = pending
+        elif interactive:
+            print("Poprvé se zapisuje do těchto cest v $HOME:")
+            for rel_str, _src, dest in pending:
+                marker = " (přepíše existující soubor)" if dest.exists() else ""
+                print(f"  ~/{rel_str}{marker}")
+            answer = input("Zapsat tyto soubory? [y/N]: ").strip().lower()
+            approved = pending if answer == "y" else []
+        else:
+            approved = []
+    else:
+        approved = []
+
+    approved_rel = {rel_str for rel_str, _src, _dest in approved}
+    skipped = [dest for rel_str, _src, dest in pending if rel_str not in approved_rel]
+    for rel_str, src, dest in approved:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         known.add(rel_str)
         written.append(dest)
+
     manifest["files"] = sorted(known)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -419,8 +442,13 @@ def cmd_sync(args):
 
     if plan:
         home = Path.home()
-        written, skipped = materialize_home(home, plan, sys.stdin.isatty(), home / MANIFEST_NAME)
-        print(f"$HOME: zapsáno {len(written)} souborů" + (f", přeskočeno {len(skipped)} (cizí soubory)" if skipped else ""))
+        written, skipped = materialize_home(
+            home, plan, sys.stdin.isatty(), args.yes, home / MANIFEST_NAME
+        )
+        msg = f"$HOME: zapsáno {len(written)} souborů"
+        if skipped:
+            msg += f", přeskočeno {len(skipped)} (nepotvrzeno — spusť 'pact sync --yes' nebo interaktivně potvrď)"
+        print(msg)
     else:
         print("$HOME: nic k instalaci (2_Context/scope.yml chybí nebo je prázdný)")
     return 0
@@ -677,6 +705,19 @@ SECRET_PATTERNS = [
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
 ]
 
+# Vada C (fix-brief-01): kontrola rozbitych odkazu na soubory uvnitr repa.
+# [DOPLNIT ...] placeholdery se ze skenu odstrani predem -- nejsou odkaz.
+PLACEHOLDER_BLOCK_RE = re.compile(r"\[DOPLNIT[^\]]*\]")
+# Standardni markdown odkaz [text](cesta) -- ignoruje se http(s)/mailto/kotva.
+MD_LINK_RE = re.compile(r"\[[^\]\n]*\]\(([^)\n]+)\)")
+# Vzor z N-5: odrazka zacinajici holym nazvem souboru se znamou priponou,
+# napr. "- pojistovnictvi.md — popis". Jmeno souboru zminene uprostred vety
+# tenhle vzor nezachyti (musi byt prvni token za "- ").
+BULLET_FILE_RE = re.compile(
+    r"^[ \t]*-[ \t]+([\w\-]+\.(?:md|py|yml|yaml|json|txt|toml|cfg|ini))(?=[ \t]|$)",
+    re.MULTILINE,
+)
+
 
 def _git_tracked_files():
     try:
@@ -813,6 +854,46 @@ def _check_home_scope():
     return "OK", "$HOME odpovídá kanonickému zdroji"
 
 
+def _find_broken_links():
+    """Vrati seznam (relativni_cesta_zdroje, odkazovana_cesta) pro odkazy,
+    jejichz cil v repu neexistuje. Skenuje jen trackovane .md soubory --
+    generovane adaptery (.claude/, .github/, .agents/) jsou kopie a
+    kontrolovaly by totez vicekrat."""
+    broken = []
+    for path in _git_tracked_files():
+        if path.suffix != ".md" or not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        text = PLACEHOLDER_BLOCK_RE.sub("", text)
+
+        targets = []
+        for m in MD_LINK_RE.finditer(text):
+            target = m.group(1).strip().split("#", 1)[0].strip()
+            if not target or target.startswith(("http://", "https://", "mailto:")):
+                continue
+            targets.append(target)
+        for m in BULLET_FILE_RE.finditer(text):
+            targets.append(m.group(1))
+
+        for target in targets:
+            if (path.parent / target).exists() or (REPO_ROOT / target).exists():
+                continue
+            broken.append((path.relative_to(REPO_ROOT), target))
+    return broken
+
+
+def _check_broken_links():
+    broken = _find_broken_links()
+    if broken:
+        rel_path, target = broken[0]
+        extra = "" if len(broken) == 1 else f" (+{len(broken) - 1} dalších)"
+        return "FAIL", f"rozbitý odkaz v {rel_path}: {target}{extra}"
+    return "OK", "žádné odkazy na neexistující soubory"
+
+
 def _check_dual_root_projects():
     if not PROJECTS_DIR.is_dir():
         return "OK", "žádné projekty"
@@ -849,6 +930,7 @@ def cmd_doctor(args):
     except PactError as exc:
         checks.append(("FAIL", f"nevalidní/chybějící frontmatter: {exc}"))
     checks.append(_check_adapters())
+    checks.append(_check_broken_links())
     checks.append(_check_dual_root_projects())
 
     has_fail = False
@@ -869,6 +951,10 @@ def build_parser():
 
     p_sync = sub.add_parser("sync", help="vygeneruje adaptéry a nainstaluje uživatelskou úroveň do $HOME")
     p_sync.add_argument("--dry-run", action="store_true", help="vypíše plánované operace, nezapisuje")
+    p_sync.add_argument(
+        "--yes", action="store_true",
+        help="potvrdí zápis cest v $HOME, na které pact sync ještě nikdy nezapisoval (nové i cizí soubory)",
+    )
     p_sync.set_defaults(func=cmd_sync)
 
     p_registry = sub.add_parser("registry", help="vygeneruje 1_Abilities/REGISTRY.md")
