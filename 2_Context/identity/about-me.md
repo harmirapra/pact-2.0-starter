@@ -1,0 +1,21 @@
+# O mně
+
+> Základní kontext o tobě. Načítá se prakticky při každé práci, takže sem patří to podstatné a trvalé — ne aktuální úkoly.
+>
+> Tenhle soubor se instaluje i na uživatelskou úroveň (`$HOME`), takže ho agent uvidí i při práci mimo PACT. Kontrolní otázka u každé věty: *chci, aby tohle viděl agent při práci nad firemním kódem?*
+
+## Kdo jsem
+
+[DOPLNIT: jméno, čím se živíš, kolik toho máš za sebou]
+
+## Co dělám
+
+[DOPLNIT: role, obor, typ práce, ve které ti má agent pomáhat]
+
+## Jak se mnou mluvit
+
+[DOPLNIT: tykání nebo vykání, jazyk, úroveň podrobnosti, co tě u odpovědí štve]
+
+## Co o mně agent má vědět, aby neplýtval mým časem
+
+[DOPLNIT: v čem se vyznáš a nemusí ti to vysvětlovat · v čem jsi začátečník a potřebuješ vysvětlit pojmy · jak se rozhoduješ]
