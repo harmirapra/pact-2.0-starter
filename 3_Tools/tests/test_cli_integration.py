@@ -95,92 +95,6 @@ class TestRegistry(BaseSandboxTest):
         self.assertEqual(result.returncode, 1)
 
 
-class TestHomeInstall(BaseSandboxTest):
-    def _scope_with_about_me(self, content="puvodni obsah\n"):
-        (self.repo / "2_Context" / "identity" / "about-me.md").write_text(content, encoding="utf-8")
-        (self.repo / "2_Context" / "scope.yml").write_text(
-            "user_level:\n  context:\n    - identity/about-me.md\n  skills: []\n",
-            encoding="utf-8",
-        )
-
-    def test_sync_without_yes_skips_first_home_writes_noninteractively(self):
-        """F4 -- bez potvrzeni se do $HOME nezapise ani novy soubor, ani cizi se neprepise."""
-        self._scope_with_about_me()
-        foreign_target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
-        foreign_target.parent.mkdir(parents=True)
-        foreign_target.write_text("cizi obsah, nevytvoril pact\n", encoding="utf-8")
-
-        result = run_pact(self.repo, "sync", home=self.home)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("nepotvrzeno", result.stdout)
-        # cizi soubor zustava nedotceny
-        self.assertEqual(foreign_target.read_text(encoding="utf-8"), "cizi obsah, nevytvoril pact\n")
-        # nova cesta (rules/) se bez potvrzeni vubec nezapise -- tohle je oprava N-3
-        rules_target = self.home / ".claude" / "rules" / "identity" / "about-me.md"
-        self.assertFalse(rules_target.exists())
-
-    def test_sync_yes_confirms_first_home_writes(self):
-        self._scope_with_about_me()
-        foreign_target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
-        foreign_target.parent.mkdir(parents=True)
-        foreign_target.write_text("cizi obsah, nevytvoril pact\n", encoding="utf-8")
-
-        result = run_pact(self.repo, "sync", "--yes", home=self.home)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        rules_target = self.home / ".claude" / "rules" / "identity" / "about-me.md"
-        self.assertTrue(rules_target.is_file())
-        self.assertEqual(rules_target.read_text(encoding="utf-8"), "puvodni obsah\n")
-        # --yes je souhrnne potvrzeni za cely beh, plati i pro prepis cizi cesty
-        self.assertEqual(foreign_target.read_text(encoding="utf-8"), "puvodni obsah\n")
-
-    def test_home_install_overwrites_own_previous_install_without_yes(self):
-        """Cesta uz jednou potvrzena (je v manifestu) se pri dalsich bezich aktualizuje automaticky."""
-        self._scope_with_about_me("v1\n")
-        r1 = run_pact(self.repo, "sync", "--yes", home=self.home)
-        self.assertEqual(r1.returncode, 0, r1.stderr)
-        (self.repo / "2_Context" / "identity" / "about-me.md").write_text("v2\n", encoding="utf-8")
-        r2 = run_pact(self.repo, "sync", home=self.home)
-        self.assertEqual(r2.returncode, 0, r2.stderr)
-        target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
-        self.assertEqual(target.read_text(encoding="utf-8"), "v2\n")
-
-    def test_no_scope_yml_means_nothing_installed(self):
-        result = run_pact(self.repo, "sync", home=self.home)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.home / ".copilot").exists())
-
-    def test_deleted_manifest_path_is_not_silently_restored(self):
-        """Vada F/N-8 -- vedome smazany soubor z manifestu se nesmi tise
-        obnovit pri dalsim 'sync' bez potvrzeni."""
-        self._scope_with_about_me()
-        r1 = run_pact(self.repo, "sync", "--yes", home=self.home)
-        self.assertEqual(r1.returncode, 0, r1.stderr)
-        target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
-        self.assertTrue(target.is_file())
-
-        target.unlink()
-
-        r2 = run_pact(self.repo, "sync", home=self.home)
-        self.assertEqual(r2.returncode, 0, r2.stderr)
-        self.assertIn("nepotvrzeno", r2.stdout)
-        self.assertFalse(target.exists())
-
-        manifest = json.loads((self.home / ".pact-manifest.json").read_text(encoding="utf-8"))
-        self.assertIn(str(Path(".copilot") / "instructions" / "identity" / "about-me.md"), manifest["files"])
-
-    def test_deleted_manifest_path_restored_with_yes(self):
-        """--yes potvrzuje i obnoveni vedome smazane cesty -- rozsiruje
-        pojistku FIX01, neruší ji."""
-        self._scope_with_about_me()
-        run_pact(self.repo, "sync", "--yes", home=self.home)
-        target = self.home / ".copilot" / "instructions" / "identity" / "about-me.md"
-        target.unlink()
-
-        r2 = run_pact(self.repo, "sync", "--yes", home=self.home)
-        self.assertEqual(r2.returncode, 0, r2.stderr)
-        self.assertTrue(target.is_file())
-
-
 class TestProjectLifecycle(BaseSandboxTest):
     def test_new_single_root(self):
         result = run_pact(self.repo, "new", "muj-projekt", "--type", "single-root", home=self.home)
@@ -287,7 +201,7 @@ class TestDoctorBasics(BaseSandboxTest):
         self.assertIn("pact sync", result.stdout)
 
     def test_doctor_reports_no_broken_links_by_default(self):
-        run_pact(self.repo, "sync", "--yes", home=self.home)
+        run_pact(self.repo, "sync", home=self.home)
         result = run_pact(self.repo, "doctor", home=self.home)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("žádné odkazy na neexistující soubory", result.stdout)
@@ -296,7 +210,7 @@ class TestDoctorBasics(BaseSandboxTest):
         readme = self.repo / "2_Context" / "expertise" / "README.md"
         readme.parent.mkdir(parents=True, exist_ok=True)
         readme.write_text("## Oblasti\n\n[neexistujici](neexistujici.md)\n", encoding="utf-8")
-        run_pact(self.repo, "sync", "--yes", home=self.home)
+        run_pact(self.repo, "sync", home=self.home)
         git_init_repo(self.repo)
         git_add_commit(self.repo, "pridat rozbity odkaz (test)")
 
@@ -310,7 +224,7 @@ class TestDoctorBasics(BaseSandboxTest):
         readme = self.repo / "2_Context" / "expertise" / "README.md"
         readme.parent.mkdir(parents=True, exist_ok=True)
         readme.write_text("## Oblasti\n\n- pojistovnictvi.md — popis oblasti.\n", encoding="utf-8")
-        run_pact(self.repo, "sync", "--yes", home=self.home)
+        run_pact(self.repo, "sync", home=self.home)
         git_init_repo(self.repo)
         git_add_commit(self.repo, "pridat vymysleny odkaz (test)")
 
@@ -328,7 +242,7 @@ class TestDoctorBasics(BaseSandboxTest):
             "V textu zminuji soubor nastroje.md, ale neni to odkaz.\n",
             encoding="utf-8",
         )
-        run_pact(self.repo, "sync", "--yes", home=self.home)
+        run_pact(self.repo, "sync", home=self.home)
         git_init_repo(self.repo)
         git_add_commit(self.repo, "placeholder a proza (test)")
 

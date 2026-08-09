@@ -107,6 +107,7 @@ přínosu zmizí.
 4. NIKDY nezapisuj tajemství do souborů — patří do `.env` (gitignorováno).
 5. U projektu typu `dual-root` si přečti jeho `PROJECT.md` dřív, než sáhneš na kód.
 6. Po změně dovednosti spusť `pact sync` a `pact registry`.
+7. **PACT nikdy nezapisuje mimo své repo.** `$HOME` je jen ke čtení, a i to jen jako volitelný zdroj s potvrzením uživatele (import identity, `pact-setup` krok 1). Nevymýšlej instalaci zpátky.
 
 ## Nastavení / první spuštění
 

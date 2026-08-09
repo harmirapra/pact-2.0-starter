@@ -1,10 +1,10 @@
 # Stack — agenti a rozšíření
 
-> Manifest toho, čím pracuješ. Vyplňuje se v `pact-setup`, kroku 6, a
-> udržuje dovednost `scope-review` (kolize s baseline dovednostmi).
-> Tenhle soubor je záznam, ne instalátor — `pact sync` z něj nic
-> neinstaluje, jen ho čte `scope-review` a člověk, který se ptá "čím to
-> vlastně běží".
+> Manifest toho, čím pracuješ. Vyplňuje se v `pact-setup`, kroku 5, a
+> udržuje dovednost `plugin-collision-review` (kolize s baseline
+> dovednostmi). Tenhle soubor je záznam, ne instalátor — `pact sync` z něj
+> nic neinstaluje, jen ho čte `plugin-collision-review` a člověk, který se
+> ptá "čím to vlastně běží".
 
 ## Agenti
 
@@ -34,7 +34,7 @@ ale mimo rozsah v1 PACT-2.0.
 
 ## Rozhodnutí o kolizích
 
-Zapisuje `scope-review` při každé revizi. Formát: datum, dvojice
+Zapisuje `plugin-collision-review` při každé revizi. Formát: datum, dvojice
 (dovednost × rozšíření), rozhodnutí, jednořádkové zdůvodnění.
 
 - [DOPLNIT: zatím žádná revize neproběhla]

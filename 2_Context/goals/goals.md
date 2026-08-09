@@ -2,7 +2,7 @@
 
 > Čemu tvoje práce slouží. Agent to používá, aby poznal, kdy tě má upozornit, že jdeš proti vlastnímu záměru.
 >
-> Cíle **nepatří na uživatelskou úroveň** (`$HOME`) — načítaly by se i při práci nad firemním kódem. Zůstávají v PACT.
+> Tenhle soubor zůstává jen v PACTu — PACT nikdy nezapisuje mimo své repo (`AGENTS.md`). Na rozdíl od identity (`about-me.md`) navíc není kandidát ani na ruční kopii do `$HOME`: cíle by se pak načítaly i při práci nad firemním kódem, a tam nepatří.
 >
 > Aktualizuj je, když se změní situace, ne podle kalendáře. Splněný cíl nemaž — přesuň ho do „Hotovo" i s datem.
 

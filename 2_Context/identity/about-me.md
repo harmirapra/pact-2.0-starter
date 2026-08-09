@@ -2,7 +2,7 @@
 
 > Základní kontext o tobě. Načítá se prakticky při každé práci, takže sem patří to podstatné a trvalé — ne aktuální úkoly.
 >
-> Tenhle soubor se instaluje i na uživatelskou úroveň (`$HOME`), takže ho agent uvidí i při práci mimo PACT. Kontrolní otázka u každé věty: *chci, aby tohle viděl agent při práci nad firemním kódem?*
+> Tenhle soubor zůstává jen v PACTu — PACT nikdy nezapisuje mimo své repo (`AGENTS.md`), takže se nikam ven needituje ani nekopíruje automaticky. Kdo chce mít tenhle kontext k dispozici i mimo PACT (např. v `~/.claude/CLAUDE.md`), zkopíruje si ho ručně sám.
 
 ## Kdo jsem
 

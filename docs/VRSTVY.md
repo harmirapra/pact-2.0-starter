@@ -4,7 +4,7 @@ Co všechno agent umí, nepřichází z jednoho místa. PACT staví a spravuje j
 
 | Vrstva | Co to je | Přenositelnost | Kde žije |
 |---|---|---|---|
-| **1. PACT** | tvůj kontext + tvoje dovednosti | plná (otevřený standard) | tenhle repozitář a `$HOME` |
+| **1. PACT** | tvůj kontext + tvoje dovednosti | plná (otevřený standard) | tenhle repozitář (kanonický zdroj); `$HOME` jen jako volitelný, ručně kopírovaný import — PACT tam nic negeneruje (`docs/ROZSAH-KONTEXTU.md`) |
 | **2. Rozšíření agenta** | pluginy, marketplace rozšíření, hooks, slash commands | žádná — vendor-specific | konfigurace konkrétního agenta |
 | **3. Externí nástroje** | MCP servery, API, SaaS integrace | částečná (MCP je otevřený standard) | mimo rozsah PACT-2.0 v1 |
 
@@ -21,7 +21,7 @@ Rozšíření agenta občas pokrývá stejné území jako baseline dovednost z 
 | Páka | Kdy působí | Spolehlivost |
 |---|---|---|
 | `AGENTS.md` | při každém načtení kontextu | vysoká — pravidla se *načítají*, ne vybírají |
-| dovednost `scope-review` | periodicky, při správě | vysoká — je to rozhodnutí, ne náhoda |
+| dovednost `plugin-collision-review` | periodicky, při správě | vysoká — je to rozhodnutí, ne náhoda |
 | popis dovednosti (`description`) | při aktivaci | neřiditelné |
 
 Pravidlo do `AGENTS.md` se uplatní bez ohledu na to, který mechanismus nakonec vystřelí — proto tam patří kontext, ne do jednotlivé dovednosti:
@@ -32,12 +32,12 @@ načti 2_Context/expertise/ a 2_Context/goals/goals.md — bez ohledu na to,
 který mechanismus se použije.
 ```
 
-Kolize samotná se řeší při revizi (`scope-review`), ne za běhu — viz jeho `SKILL.md` a `2_Context/stack.md`, kam se rozhodnutí zapisují.
+Kolize samotná se řeší při revizi (`plugin-collision-review`), ne za běhu — viz jeho `SKILL.md` a `2_Context/stack.md`, kam se rozhodnutí zapisují.
 
 **Baseline dovednost, která ti v prostředí s nainstalovaným rozšířením nikdy nevystřelí, není chyba — je to pojistka** pro prostředí, kde to rozšíření k dispozici nebude (jiný stroj, jiný agent, firemní prostředí bez pluginů). Duplicitní mechanismus je přijatelný; závislost kontextu na tom, který z nich vyhraje, ne.
 
 ## Co PACT-2.0 v této vrstvě nedělá
 
 - Neinstaluje ani nespravuje pluginy, marketplace rozšíření ani hooks — ty se instalují v konfiguraci konkrétního agenta, mimo tenhle repozitář.
-- Dovednost `pact-setup` (krok 6) rozšíření **jen zaznamená** do `2_Context/stack.md`, neinstaluje je.
+- Dovednost `pact-setup` (krok 5) rozšíření **jen zaznamená** do `2_Context/stack.md`, neinstaluje je.
 - Vrstva 3 (MCP servery, externí API) je vědomě mimo rozsah v1 — kandidát na pozdější fázi, ne teď.

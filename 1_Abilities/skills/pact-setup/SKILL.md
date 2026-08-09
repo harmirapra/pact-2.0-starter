@@ -1,8 +1,8 @@
 ---
 name: pact-setup
 description: >-
-  Provede nového uživatele prvním nastavením PACT — deset kroků od identity
-  přes git zálohu a rozsah kontextu až po první dovednost a první projekt.
+  Provede nového uživatele prvním nastavením PACT — devět kroků od identity
+  přes git zálohu až po první dovednost a první projekt.
   Use when: uživatel řekne "použij dovednost pact-setup", "nastav mi PACT",
   "chci začít s PACTem", "projdi mě onboardingem", "set up PACT", "first-time
   setup", "onboard me", "initialize PACT", nebo otevře čerstvě naklonovaný
@@ -12,7 +12,7 @@ description: >-
 
 # pact-setup
 
-Deset kroků, jedno posezení. Cíl není vyplnit každé pole dokonale — cíl je mít po dokončení PACT, který **umí být užitečný hned**, a vědět, co ještě čeká na doplnění.
+Devět kroků, jedno posezení. Cíl není vyplnit každé pole dokonale — cíl je mít po dokončení PACT, který **umí být užitečný hned**, a vědět, co ještě čeká na doplnění.
 
 **Pravidlo pro celý průchod:** nikdy nevymýšlej odpověď za uživatele. Placeholder `[DOPLNIT]`, který zůstane placeholderem o krok déle, je lepší než vymyšlený obsah — to platí i uprostřed wizardu, ne jen mimo něj (3.1). Když uživatel na otázku nemá teď odpověď, zapiš `[DOPLNIT]` a jdi dál; wizard se dá spustit znovu.
 
@@ -25,7 +25,7 @@ Zjisti, s čím pracuješ, dřív než začneš cokoli zapisovat:
 - je nainstalovaný `git`? Bez něj nejde krok 4.
 - je nainstalovaný a přihlášený `gh` (GitHub CLI)? Bez něj krok 4 založí repo ručně přes web.
 - je dostupný `python3 3_Tools/bin/pact --help`? Pokud ne, zastav se — bez CLI nejde ověřit žádný další krok.
-- ve kterém coding agentovi právě běžíš? Zapiš si jeho jméno pro krok 6 — půjde do `stack.md`.
+- ve kterém coding agentovi právě běžíš? Zapiš si jeho jméno pro krok 5 — půjde do `stack.md`.
 
 Chybějící `git` nebo `gh` není důvod končit — je to WARN, pokračuj a připomeň to u kroku 4.
 
@@ -40,7 +40,7 @@ Chybějící `git` nebo `gh` není důvod končit — je to WARN, pokračuj a p�
 
 **Tvrdý zákaz zdroje:** `~/.claude/rules/`, `~/.copilot/instructions/`, `~/.agents/skills/` a obdobné cesty **nikdy** nejsou zdroj pro import. Jsou to artefakty vygenerované `pact sync` — čerpat z nich do kanonického zdroje je kruhové a porušuje princip P1 (jeden kanonický zdroj, generované adaptéry). Zdrojem smí být jen soubor, který napsal přímo uživatel.
 
-Připomeň před zápisem: tenhle soubor se instaluje i na uživatelskou úroveň (krok 5) — uvidí ho agent i při práci nad cizím kódem. Kontrolní otázka u citlivějších vět: *chceš, aby tohle agent viděl i mimo PACT?*
+Připomeň před zápisem: tenhle soubor zůstává jen v PACTu — PACT nikdy nezapisuje mimo své repo (`AGENTS.md`), takže se nikam ven needituje ani nekopíruje automaticky. Kdo ho chce mít k dispozici i mimo PACT, zkopíruje si ho ručně sám.
 
 ## Krok 2 — Jak píšeš → `2_Context/identity/tone-of-voice/`
 
@@ -54,55 +54,43 @@ Když textů nemá dost (`personal-voice-analyst` řekne, jestli vzorek stačí)
 
 ## Krok 3 — Cíle → `2_Context/goals/goals.md`
 
-Krátký horizont stačí — čtvrtletí, ne pětiletý plán. Ptej se: *co teď řešíš, co by ses rád naučil, čemu se chceš vyhnout.* Připomeň, že `goals.md` **nejde** na uživatelskou úroveň (na rozdíl od kroku 1) — cíle nemají co dělat nad cizím kódem.
+Krátký horizont stačí — čtvrtletí, ne pětiletý plán. Ptej se: *co teď řešíš, co by ses rád naučil, čemu se chceš vyhnout.* Připomeň, že `goals.md` zůstává jen v PACT — na rozdíl od kroku 1 tu není co ani nabízet ke kopírování ven, cíle nemají co dělat nad cizím kódem.
 
 ## Krok 4 — Git, GitHub, záloha
 
-1. Pokud repo ještě nemá `.git`, `git init`, větev `main`.
-2. Pokud `gh` je dostupný a přihlášený: `gh repo create <nazev> --private`, nastav `origin`.
+Wizard git **nespouští** — jen vypíše příkazy, vysvětlí, co dělají, a spuštění nechá na uživateli (stejný princip jako u kroku, který dřív zapisoval do `$HOME`: schopnost commitovat nebo pushovat za uživatele wizard nemá mít, ne jen zákaz).
+
+1. Pokud repo ještě nemá `.git`: ukaž příkaz `git init` a založení větve `main`, vysvětli k čemu je.
+2. Pokud je `gh` dostupný a přihlášený: ukaž příkaz `gh repo create <nazev> --private` a nastavení `origin`.
 3. Pokud `gh` chybí: vypiš uživateli přesné kroky k ručnímu založení private repa na GitHubu a nastavení `origin`.
-4. **Zeptej se, než cokoli pushneš.** První push je záloha — udělej ji na vyžádání, ne automaticky.
+4. Ukaž příkaz na první commit a push a vysvětli, že je to záloha. **Nespouštěj ho** — uživatel ho spustí sám, až bude chtít.
 
-Bez tohohle kroku nemá `pact doctor` co kontrolovat u „nepushnuté commity" a `daily-tidy` nemá kam zálohovat.
+Bez tohohle kroku nemá `pact doctor` co kontrolovat u „nepushnuté commity" a `daily-tidy` nemá kam zálohovat — ale iniciativu ke commitu a pushi má mít vždy uživatel, ne wizard (viz meze v `docs/ARCHITECTURE.md`: co agent udělá s gitem mimo tenhle krok, PACT neovlivní).
 
-## Krok 5 — Rozsah kontextu → instalace do `$HOME`
-
-Vysvětli krátce tři úrovně (`docs/ROZSAH-KONTEXTU.md`, uživatelská/repo/podsložka) a ukaž aktuální `2_Context/scope.yml`. Výchozí stav šablony: identita na uživatelskou úroveň, dovednosti zatím žádné.
-
-Zeptej se, jestli chce rozsah rozšířit už teď (obvykle ne — realokaci za provozu řeší `scope-review`, krok 5 stačí potvrdit výchozí stav).
-
-**Než cokoli zapíšeš do `$HOME`, ukaž a počkej na potvrzení:**
-
-1. Spusť `python3 3_Tools/bin/pact sync --dry-run` a ukaž celý výstup — konkrétní soubory a cesty pod `$HOME`, které by se zapsaly.
-2. Zeptej se výslovně, jestli má zapsat naostro. Nepokračuj bez jasného "ano".
-3. Teprve po potvrzení spusť `python3 3_Tools/bin/pact sync --yes` a ukaž výstup (kolik souborů se skutečně zapsalo).
-
-`--yes` smíš použít **jedině** tady a jedině po tomhle potvrzení — je to jediné místo v celém wizardu, kde se sahá mimo repo do uživatelovy skutečné `$HOME` konfigurace. Bez potvrzení `pact sync` nové cesty v `$HOME` sám od sebe přeskočí (viz kontrakt v zadání, sekce 6) — pokud se to stane, není to chyba, jen ti chybí krok 2 výše.
-
-## Krok 6 — Stack a vrstvy → `2_Context/stack.md`
+## Krok 5 — Stack a vrstvy → `2_Context/stack.md`
 
 Vysvětli tři vrstvy schopností (`docs/VRSTVY.md`): PACT (dovednosti + kontext, přenositelné) / rozšíření agenta (pluginy, hooks, slash commands — vendor-specific) / externí nástroje (MCP, API).
 
-Zeptej se, jaké agenty a rozšíření uživatel používá (z kroku 0 už znáš jednoho). Zapiš do `stack.md` — je to jen záznam, `pact-setup` nic z vrstvy 2 neinstaluje (3.9: *wizard neinstaluje, vysvětlí a zaznamená*). Pokud něco z vrstvy 2 pokrývá stejné území jako baseline dovednost v `1_Abilities/skills/`, zapiš to jako kandidáta pro `scope-review`, nerozhoduj to tady.
+Zeptej se, jaké agenty a rozšíření uživatel používá (z kroku 0 už znáš jednoho). Zapiš do `stack.md` — je to jen záznam, `pact-setup` nic z vrstvy 2 neinstaluje (3.9: *wizard neinstaluje, vysvětlí a zaznamená*). Pokud něco z vrstvy 2 pokrývá stejné území jako baseline dovednost v `1_Abilities/skills/`, zapiš to jako kandidáta pro `plugin-collision-review`, nerozhoduj to tady.
 
-## Krok 7 — Tajemství
+## Krok 6 — Tajemství
 
 1. Ověř, že `.env` je v `.gitignore` (má být od začátku).
 2. Pokud uživatel má API klíče, ukaž `.env.example` a vysvětli, že hodnoty patří do `.env`, nikdy do trackovaného souboru.
 3. Spusť kontrolu tajemství (`pact doctor`, řádek se sekcí "tajemství") a ukaž výsledek.
 4. Zmiň dovednost `git-safe-change` — bude ji používat u každé budoucí změny v kódovém repu.
 
-## Krok 8 — První dovednost
+## Krok 7 — První dovednost
 
 Projdi `1_Abilities/REGISTRY.md` s uživatelem. U dovedností, které ho zajímají, **otevři jejich `description` a dopiš spouštěcí frázi, kterou by sám použil** — návazek ze zastávky S2: popisy v šabloně jsou obecné záměrně, protože šablona neví, kdo ji naklonuje; tenhle krok je jediná chvíle, kdy se na popis podívá dřív, než ho začne zlobit, že se dovednost nespustila.
 
 Nemusí projít všech deset — stačí ty, u kterých pozná, že by je použil brzy.
 
-## Krok 9 — První projekt
+## Krok 8 — První projekt
 
 Spusť `python3 3_Tools/bin/pact new <nazev>` interaktivně. Vysvětli rozdíl `single-root` / `dual-root` (`docs/DUAL-ROOT.md`) předtím, než na otázku odpoví. Pokud jde o `dual-root` a kód už existuje, nabídni rovnou `pact link`.
 
-## Krok 10 — `pact doctor` — verifikace
+## Krok 9 — `pact doctor` — verifikace
 
 Spusť `python3 3_Tools/bin/pact doctor` a projdi výstup řádek po řádku s uživatelem. Na čerstvé instanci je normální vidět několik `WARN` (placeholdery, které z wizardu vypadly, nepushnuté commity) — to není chyba, je to seznam toho, co zbývá. `FAIL` naopak znamená, že je něco rozbité a wizard sám o sobě neskončil úspěšně; zastav se a najdi příčinu, ne pokračuj dál.
 

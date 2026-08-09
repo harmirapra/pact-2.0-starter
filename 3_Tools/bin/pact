@@ -19,11 +19,8 @@ SKILLS_DIR = REPO_ROOT / "1_Abilities" / "skills"
 REGISTRY_PATH = REPO_ROOT / "1_Abilities" / "REGISTRY.md"
 AGENTS_MD = REPO_ROOT / "AGENTS.md"
 CONTEXT_DIR = REPO_ROOT / "2_Context"
-SCOPE_YML = CONTEXT_DIR / "scope.yml"
 PROJECTS_DIR = REPO_ROOT / "0_Projects"
 TEMPLATE_PROJECT = PROJECTS_DIR / "_TEMPLATE" / "PROJECT.md"
-
-MANIFEST_NAME = ".pact-manifest.json"
 
 FALLBACK_PROJECT_TEMPLATE = """\
 <!-- TEMPLATE:single-root -->
@@ -309,113 +306,10 @@ def build_repo_adapters(dest_root):
     return skills
 
 
-def home_plan():
-    """Vrati seznam (rel_path_pod_home, zdrojovy_soubor) pro instalaci do $HOME,
-    podle 2_Context/scope.yml. Prazdny seznam, pokud scope.yml chybi."""
-    if not SCOPE_YML.is_file():
-        return []
-    data = parse_yaml_lite(SCOPE_YML.read_text(encoding="utf-8"))
-    user_level = (data or {}).get("user_level") or {}
-    context_entries = user_level.get("context") or []
-    skill_entries = user_level.get("skills") or []
-
-    plan = []
-    for entry in context_entries:
-        src = CONTEXT_DIR / entry
-        if src.is_dir():
-            for f in sorted(src.rglob("*")):
-                if f.is_file():
-                    rel = f.relative_to(CONTEXT_DIR)
-                    plan.append((Path(".copilot/instructions") / rel, f))
-                    plan.append((Path(".claude/rules") / rel, f))
-        elif src.is_file():
-            rel = src.relative_to(CONTEXT_DIR)
-            plan.append((Path(".copilot/instructions") / rel, src))
-            plan.append((Path(".claude/rules") / rel, src))
-        else:
-            raise PactError(f"scope.yml odkazuje na neexistujici cestu: {entry}")
-
-    for skill_name in skill_entries:
-        src = SKILLS_DIR / skill_name
-        if not src.is_dir():
-            raise PactError(f"scope.yml odkazuje na neexistujici dovednost: {skill_name}")
-        for f in sorted(src.rglob("*")):
-            if f.is_file():
-                rel = f.relative_to(SKILLS_DIR)
-                for ns in (".agents/skills", ".copilot/skills", ".claude/skills"):
-                    plan.append((Path(ns) / rel, f))
-
-    return plan
-
-
 def _sha256(path):
     h = hashlib.sha256()
     h.update(path.read_bytes())
     return h.hexdigest()
-
-
-def materialize_home(root, plan, interactive, confirmed, manifest_path):
-    """Zapise plan do $HOME. Cesta se zapise automaticky bez ptani jen kdyz je
-    soucasne v manifestu (pact uz na ni driv zapsal) A skutecne existuje na
-    disku. Kazda jina cesta potrebuje potvrzeni:
-    - nova cesta -- pact sem jeste nikdy nezapisoval,
-    - cizi soubor -- existuje, ale nevznikl pactem,
-    - drivejsi zapis pactem, na disku ted chybi -- uzivatel ho vedome
-      smazal (vada F/N-8); tise se neobnovi.
-    'confirmed' (--yes) potvrdi vsechny tri kategorie rovnou pro cely beh,
-    jinak se v interaktivnim behu zepta jednou souhrnne, a v neinteraktivnim
-    behu bez potvrzeni se takove cesty preskoci beze zapisu."""
-    manifest = {"files": []}
-    if manifest_path.is_file():
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            manifest = {"files": []}
-    known = set(manifest.get("files", []))
-    written = []
-    pending = []
-    for rel, src in plan:
-        dest = root / rel
-        rel_str = str(rel)
-        if rel_str in known and dest.exists():
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dest)
-            written.append(dest)
-        else:
-            pending.append((rel_str, src, dest))
-
-    if pending:
-        if confirmed:
-            approved = pending
-        elif interactive:
-            print("Tyhle cesty v $HOME potřebují potvrzení:")
-            for rel_str, _src, dest in pending:
-                if rel_str in known:
-                    marker = " (dřív zapsáno pactem, teď na disku chybí — obnovit?)"
-                elif dest.exists():
-                    marker = " (přepíše existující soubor)"
-                else:
-                    marker = " (nová cesta)"
-                print(f"  ~/{rel_str}{marker}")
-            answer = input("Zapsat tyto soubory? [y/N]: ").strip().lower()
-            approved = pending if answer == "y" else []
-        else:
-            approved = []
-    else:
-        approved = []
-
-    approved_rel = {rel_str for rel_str, _src, _dest in approved}
-    skipped = [dest for rel_str, _src, dest in pending if rel_str not in approved_rel]
-    for rel_str, src, dest in approved:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dest)
-        known.add(rel_str)
-        written.append(dest)
-
-    manifest["files"] = sorted(known)
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return written, skipped
 
 
 def cmd_sync(args):
@@ -423,10 +317,8 @@ def cmd_sync(args):
         if args.dry_run:
             with tempfile.TemporaryDirectory() as tmp:
                 skills = build_repo_adapters(Path(tmp))
-            plan = home_plan()
         else:
             skills = build_repo_adapters(REPO_ROOT)
-            plan = home_plan()
     except PactError as exc:
         print(f"CHYBA: {exc}", file=sys.stderr)
         return 1
@@ -436,31 +328,10 @@ def cmd_sync(args):
         for adapter in (".agents/skills", ".claude/skills", ".github/skills"):
             print(f"  regenerovat {adapter}/ ({len(skills)} dovedností)")
         print("  regenerovat .github/copilot-instructions.md")
-        if plan:
-            targets = sorted({str(rel) for rel, _ in plan})
-            print(f"  instalovat do $HOME: {len(targets)} souborů")
-            for t in targets[:20]:
-                print(f"    ~/{t}")
-            if len(targets) > 20:
-                print(f"    ... a {len(targets) - 20} dalších")
-        else:
-            print("  $HOME: nic k instalaci (scope.yml chybí nebo je prázdný)")
         return 0
 
     print(f"Vygenerováno {len(skills)} dovedností do .agents/, .claude/, .github/")
     print("Vygenerováno .github/copilot-instructions.md")
-
-    if plan:
-        home = Path.home()
-        written, skipped = materialize_home(
-            home, plan, sys.stdin.isatty(), args.yes, home / MANIFEST_NAME
-        )
-        msg = f"$HOME: zapsáno {len(written)} souborů"
-        if skipped:
-            msg += f", přeskočeno {len(skipped)} (nepotvrzeno — spusť 'pact sync --yes' nebo interaktivně potvrď)"
-        print(msg)
-    else:
-        print("$HOME: nic k instalaci (2_Context/scope.yml chybí nebo je prázdný)")
     return 0
 
 
@@ -868,21 +739,6 @@ def _check_adapters():
     return "OK", "generované adaptéry odpovídají kanonickému zdroji"
 
 
-def _check_home_scope():
-    try:
-        plan = home_plan()
-    except PactError as exc:
-        return "WARN", f"scope.yml: {exc}"
-    if not plan:
-        return "OK", "$HOME: nic k instalaci"
-    home = Path.home()
-    for rel, src in plan:
-        dest = home / rel
-        if not dest.is_file() or _sha256(dest) != _sha256(src):
-            return "WARN", "$HOME neodpovídá kanonickému zdroji — spusť pact sync"
-    return "OK", "$HOME odpovídá kanonickému zdroji"
-
-
 def _find_broken_links():
     """Vrati seznam (relativni_cesta_zdroje, odkazovana_cesta) pro odkazy,
     jejichz cil v repu neexistuje. Skenuje jen trackovane .md soubory --
@@ -951,7 +807,6 @@ def cmd_doctor(args):
     checks = []
     checks.append(_check_placeholders())
     checks.extend(_check_git_state())
-    checks.append(_check_home_scope())
     checks.append(_check_secrets())
     try:
         validate_skills()
@@ -978,15 +833,8 @@ def build_parser():
     parser = argparse.ArgumentParser(prog="pact", description="CLI pro PACT workspace")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_sync = sub.add_parser("sync", help="vygeneruje adaptéry a nainstaluje uživatelskou úroveň do $HOME")
+    p_sync = sub.add_parser("sync", help="vygeneruje adaptéry (.agents/, .claude/, .github/) z kanonického zdroje")
     p_sync.add_argument("--dry-run", action="store_true", help="vypíše plánované operace, nezapisuje")
-    p_sync.add_argument(
-        "--yes", action="store_true",
-        help=(
-            "potvrdí zápis cest v $HOME, které potřebují potvrzení (nové, cizí, "
-            "nebo dřív zapsané pactem a mezitím smazané)"
-        ),
-    )
     p_sync.set_defaults(func=cmd_sync)
 
     p_registry = sub.add_parser("registry", help="vygeneruje 1_Abilities/REGISTRY.md")

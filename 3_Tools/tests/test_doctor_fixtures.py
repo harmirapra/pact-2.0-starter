@@ -21,7 +21,7 @@ class TestFreshFixture(unittest.TestCase):
         self.repo = make_sandbox(self.tmp_path, fixture_name="fresh")
         self.home = self.tmp_path / "home"
         self.home.mkdir()
-        sync = run_pact(self.repo, "sync", "--yes", home=self.home)
+        sync = run_pact(self.repo, "sync", home=self.home)
         self.assertEqual(sync.returncode, 0, sync.stderr)
 
     def tearDown(self):
@@ -33,11 +33,6 @@ class TestFreshFixture(unittest.TestCase):
         self.assertIn("WARN", result.stdout)
         self.assertIn("pact-setup", result.stdout)
         self.assertNotIn("FAIL", result.stdout)
-
-    def test_doctor_reports_home_ok_after_confirmed_sync(self):
-        """setUp synchronizuje s --yes -- $HOME musi souhlasit s kanonickym zdrojem."""
-        result = run_pact(self.repo, "doctor", home=self.home)
-        self.assertIn("$HOME odpovídá kanonickému zdroji", result.stdout)
 
     def test_doctor_warns_when_context_files_are_missing(self):
         """Prazdna slozka drive prosla jako 'kontext je vyplneny'."""
@@ -71,7 +66,7 @@ class TestFilledFixture(unittest.TestCase):
         self.repo = make_sandbox(self.tmp_path, fixture_name="filled")
         self.home = self.tmp_path / "home"
         self.home.mkdir()
-        sync = run_pact(self.repo, "sync", "--yes", home=self.home)
+        sync = run_pact(self.repo, "sync", home=self.home)
         self.assertEqual(sync.returncode, 0, sync.stderr)
 
     def tearDown(self):
@@ -93,7 +88,7 @@ class TestSecretDetection(unittest.TestCase):
         self.repo = make_sandbox(self.tmp_path, fixture_name="filled")
         self.home = self.tmp_path / "home"
         self.home.mkdir()
-        run_pact(self.repo, "sync", "--yes", home=self.home)
+        run_pact(self.repo, "sync", home=self.home)
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -113,9 +108,10 @@ class TestSecretDetection(unittest.TestCase):
 
 
 class TestDoctorChecklistCompleteness(unittest.TestCase):
-    """F9 -- doctor musi implementovat vsech osm kontrol ze sekce 3.7
-    rozhodovaciho dokumentu, a kazda z nich musi v realnem behu skutecne
-    vyprodukovat radek vystupu (ne jen existovat nekde v kodu)."""
+    """F9 -- doctor musi implementovat vsech sedm kontrol ze sekce 3.7
+    rozhodovaciho dokumentu (osma, kontrola $HOME, zrusena fix-brief-03),
+    a kazda z nich musi v realnem behu skutecne vyprodukovat radek vystupu
+    (ne jen existovat nekde v kodu)."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -123,7 +119,7 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
         self.repo = make_sandbox(self.tmp_path, fixture_name="filled")
         self.home = self.tmp_path / "home"
         self.home.mkdir()
-        sync = run_pact(self.repo, "sync", "--yes", home=self.home)
+        sync = run_pact(self.repo, "sync", home=self.home)
         self.assertEqual(sync.returncode, 0, sync.stderr)
         git_init_repo(self.repo)
         git_add_commit(self.repo, "pocatecni stav (test)")
@@ -135,7 +131,7 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def test_all_eight_checks_from_section_3_7_produce_output(self):
+    def test_all_seven_checks_from_section_3_7_produce_output(self):
         result = run_pact(self.repo, "doctor", home=self.home)
         markers = {
             "nezacommitované změny": ("nezacommitované", "pracovní strom je čistý"),
@@ -143,9 +139,6 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
             "placeholdery": ("kontext je vyplněný", "chybí soubory kontextu", "placeholdery"),
             "tajemství": ("tajemství",),
             "adaptéry v PACT": ("adaptéry odpovídají", "neodpovídá kanonickému zdroji"),
-            "instalace v $HOME": (
-                "$HOME odpovídá kanonickému zdroji", "$HOME neodpovídá", "$HOME: nic k instalaci",
-            ),
             "osiřelé projekty (code.path)": ("code.path", "žádné projekty"),
             "rozbité odkazy": ("odkazy na neexistující soubory", "rozbitý odkaz"),
         }
@@ -185,7 +178,7 @@ class TestNeverSynced(unittest.TestCase):
 
     def test_partially_synced_adapters_are_fail_not_warn(self):
         """Castecny/rozjety stav (nekonzistence) neni totez jako 'nenastaveno'."""
-        run_pact(self.repo, "sync", "--yes", home=self.home)
+        run_pact(self.repo, "sync", home=self.home)
         import shutil
 
         shutil.rmtree(self.repo / ".claude")

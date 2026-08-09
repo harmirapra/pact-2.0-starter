@@ -8,13 +8,15 @@ PACT-2.0 je výchozí šablona pro nové instance frameworku **PACT** (Projects 
 
 - **Vendor neutralita** — instance musí fungovat i tam, kde konkrétní coding agent není k dispozici (horizont: bankovní prostředí s GitHub Copilotem).
 - **Dual root** — kontext a kód mají odlišný životní cyklus (pomalý a lidský vs. rychlý a strojový) a nesdílejí historii.
-- **Neutrální jádro + generované adaptéry** — kanonický zdroj je jeden a nezávislý na nástroji; `.claude/`, `.github/`, `.agents/` a instalace do `$HOME` jsou z něj *generované* build artefakty, nikdy ručně editovaná pravda.
+- **Neutrální jádro + generované adaptéry** — kanonický zdroj je jeden a nezávislý na nástroji; `.claude/`, `.github/`, `.agents/` jsou z něj *generované* build artefakty, nikdy ručně editovaná pravda.
+
+> **PACT nikdy nezapisuje mimo své repo.** `$HOME` je pro něj jen ke čtení, a i to pouze jako volitelný zdroj s potvrzením uživatele (import identity, krok 1 `pact-setup`). Neplatí to díky kontrole, prostě to platí — v kódu žádná zapisovací větev mimo repo neexistuje (`fix-brief-03.md`).
 
 ## Principy
 
 | # | Princip | Důsledek |
 |---|---|---|
-| P1 | Jeden kanonický zdroj, generované adaptéry | `.claude/`, `.github/`, `.agents/`, `$HOME` — nikdy needituj ručně |
+| P1 | Jeden kanonický zdroj, generované adaptéry | `.claude/`, `.github/`, `.agents/` — nikdy needituj ručně |
 | P2 | Standard před vlastním řešením | `AGENTS.md` + `SKILL.md`, otevřené standardy |
 | P3 | Routing je data, ne tabulka | dovednost se aktivuje přes `description`, ne přes seznam v instrukčním souboru |
 | P4 | Kontext a kód mají oddělenou historii | dual root — nezávisle na viditelnosti repozitáře |
@@ -36,7 +38,7 @@ PACT-2.0 je výchozí šablona pro nové instance frameworku **PACT** (Projects 
 |---|---|---|
 | `0_Projects/` | CO dělám? | znalostní část projektů, šablona `_TEMPLATE/` |
 | `1_Abilities/` | JAK to dělat? | dovednosti — `SKILL.md`, otevřený standard |
-| `2_Context/` | KDO jsem / co dělám? | identita, tone of voice, cíle, expertiza, `scope.yml`, `stack.md` |
+| `2_Context/` | KDO jsem / co dělám? | identita, tone of voice, cíle, expertiza, `stack.md` |
 | `3_Tools/` | S ČÍM? | CLI `pact`, testy |
 
 Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitují — vyrábí je `pact sync` z kanonického zdroje.
@@ -45,7 +47,7 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 **Neutrální jádro + generované adaptéry (R2).** Kdyby „neutrální" znamenalo nejmenší společný jmenovatel, ztratí se to nejlepší z každého nástroje. Řešením je generovat nativní strukturu pro každého, ne ji zakazovat.
 
-**Tři úrovně rozsahu kontextu (R3).** Instrukční soubory kaskádují nahoru stromem, dovednosti ne — hledají se jen v definovaných adresářích. Práce v podsložce bez otevřeného PACT rootu proto tiše ztrácí dovednosti. Řeší se rozsahem (uživatelská/repo/podsložka úroveň), ne disciplínou. Podrobně `docs/ROZSAH-KONTEXTU.md`.
+**Tři úrovně rozsahu kontextu, ale PACT spravuje jen dvě (R3).** Instrukční soubory kaskádují nahoru stromem, dovednosti ne — hledají se jen v definovaných adresářích. Práce v podsložce bez otevřeného PACT rootu proto tiše ztrácí dovednosti. Uživatelská úroveň (`$HOME`) existuje a chová se takhle bez ohledu na PACT — ale PACT do ní `fix-brief-03.md` přestal zapisovat (invariant výše), takže riziko tiché ztráty kontextu se **vědomě přijímá**, ne řeší instalací. Mitigace: P5 (vstupní bod je vždy PACT) a ruční zkopírování, když se ukáže, že něco chybí. Podrobně `docs/ROZSAH-KONTEXTU.md`.
 
 **Dva typy projektů, otočená rozhodovací otázka.** Místo předvídání („vznikne tu kód s vlastním životním cyklem?") se `pact new` ptá na to, co uživatel v okamžiku zakládání skutečně ví: bude mít projekt vlastní repozitář vedle PACTu, nebo zůstane celý uvnitř? Viditelnost je spolehlivý *ukazatel* na jiný životní cyklus, ne jeho *příčina* — dva rooty existují kvůli tempu změn, ne kvůli tomu, jestli je něco veřejné. Podrobně `docs/DUAL-ROOT.md`.
 
@@ -53,7 +55,7 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 **Triáž dovedností podle jiného kritéria než „co používám".** Šablona se neptá, co konkrétní člověk za měsíc použil — ptá se, co potřebuje cizí čerstvá instance první den, aby byla soběstačná (princip P13). Výsledek: 18 dovedností — 9 baseline z pact-starteru, 1 sklizeň z existující instance (`git-safe-change`), 4 wizard/údržba, 4 RPI. Kompletní přehled i s odůvodněním v `1_Abilities/REGISTRY.md` a v pracovních souborech review.
 
-**Routing je data, a data se ladí (P3).** Pole `description` v každém `SKILL.md` rozhoduje, kdy se dovednost aktivuje — ale popisy v týhle šabloně jsou psané **obecně a záměrně nevyladěné**. Šablona neví, kdo ji naklonuje, jakým jazykem mluví nebo jakou frází si o věc řekne, takže spouštěcí fráze v `description` jsou nutně kompromis, ne finální stav. `pact-setup` (krok 8) proto vede nového uživatele k tomu, aby si u dovedností, které ho zajímají, popis rovnou doladil na vlastní slovník — a `scope-review` později kontroluje, jestli dovednost, která nikdy nevystřelila, nemá problém v obsahu, nebo jen ve špatně trefeném popisu. Routing se nekazí jednou při stavbě šablony; udržuje se průběžně.
+**Routing je data, a data se ladí (P3).** Pole `description` v každém `SKILL.md` rozhoduje, kdy se dovednost aktivuje — ale popisy v týhle šabloně jsou psané **obecně a záměrně nevyladěné**. Šablona neví, kdo ji naklonuje, jakým jazykem mluví nebo jakou frází si o věc řekne, takže spouštěcí fráze v `description` jsou nutně kompromis, ne finální stav. `pact-setup` (krok 7) proto vede nového uživatele k tomu, aby si u dovedností, které ho zajímají, popis rovnou doladil na vlastní slovník — a `plugin-collision-review` později kontroluje kolize s nainstalovanými pluginy. Routing se nekazí jednou při stavbě šablony; udržuje se průběžně.
 
 ## RPI — tři poznámky
 
@@ -74,12 +76,13 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 | Omezení | Proč |
 |---|---|
 | Kódové repo u `dual-root` projektů není samostatně soběstačné | dovednosti a kontext přicházejí jen z PACT (P6) |
-| Uživatelská úroveň v `$HOME` není verzovaná | kanonický originál je vždy v PACT (P1, P11); na novém stroji je potřeba `pact sync` |
-| Runtime arbitráž mezi dovednostmi a rozšířeními agenta není řiditelná | `SKILL.md` nemá pole pro prioritu; řeší se přes `AGENTS.md` a `scope-review`, ne za běhu (`docs/VRSTVY.md`) |
+| Uživatelská úroveň (`$HOME`) se z PACTu nespravuje (R3, vědomě přijato) | práce, která tam instalovala kontext, zrušena `fix-brief-03.md` — způsobila víc škody (N-3, N-8, N-9, N-12) než užitku; mitigace P5 (vstupní bod je vždy PACT) a ruční zkopírování |
+| Runtime arbitráž mezi dovednostmi a rozšířeními agenta není řiditelná | `SKILL.md` nemá pole pro prioritu; řeší se přes `AGENTS.md` a `plugin-collision-review`, ne za běhu (`docs/VRSTVY.md`) |
 | Custom agents (`.agent.md`, subagenti) nejsou součástí v1 | nejsou přenositelné mezi nástroji |
 | Distribuce pro tým (kolekce, maturity) není postavená | PACT-2.0 je zatím jednouživatelský; hranice distribuovatelné/osobní (P9) je připravená na pozdější rozšíření |
 | Evals a metriky kvality dovedností nejsou součástí | vědomě mimo rozsah v1 |
 | `doctor`, kontrola placeholderů: `OK` neznamená „nastaveno správně" | kontroluje jen nepřítomnost řetězce `[DOPLNIT` — nerozliší obsah napsaný uživatelem od obsahu vymyšleného agentem, a strojově to nejspíš ani nejde (nález N-4, UAT běh 1). `OK` je důkaz nepřítomnosti placeholderů, nic víc. |
+| PACT neručí za to, co agent udělá s gitem sám od sebe | wizard git nespouští, jen vypíše příkazy (`pact-setup`, krok 4) — ale schopnost commitovat nebo pushnout má agent nezávisle na PACTu a šablona ji odebrat nemůže. PACT ručí jen za to, že k tomu sám nevybízí (nález N-13, `fix-brief-03.md`, oddíl L2). |
 
 ## Zdroje
 

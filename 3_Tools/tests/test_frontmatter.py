@@ -1,4 +1,4 @@
-"""L1 -- unit testy: parser frontmatteru/scope.yml, validace, cisté funkce."""
+"""L1 -- unit testy: parser YAML-lite frontmatteru, validace, cisté funkce."""
 
 import importlib.machinery
 import importlib.util

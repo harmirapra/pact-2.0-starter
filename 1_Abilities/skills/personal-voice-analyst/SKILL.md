@@ -12,7 +12,7 @@ description: >-
 
 # Personal voice analyst
 
-Šablona PACT přijde na nový stroj prázdná. Tohle je dovednost, která ji naplní tou jedinou věcí, kterou PACT instaluje do `$HOME` — tvým hlasem.
+Šablona PACT přijde na nový stroj prázdná. Tohle je dovednost, která naplní `2_Context/identity/tone-of-voice/` tvým hlasem.
 
 Rozdíl proti běžnému „napiš mi tone of voice": tenhle postup **nevymýšlí**. Každý závěr stojí na citaci z tvého skutečného textu.
 

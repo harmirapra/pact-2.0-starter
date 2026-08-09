@@ -1,7 +1,0 @@
-# Co se instaluje na uživatelskou úroveň ($HOME).
-# Spravuje dovednost scope-review. Ručně edituj jen vědomě.
-user_level:
-  context:
-    - identity/about-me.md
-    - identity/tone-of-voice/
-  skills: []
