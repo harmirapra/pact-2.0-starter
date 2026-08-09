@@ -50,7 +50,9 @@ V některých prostředích agent kód spouštět nesmí nebo neumí. Pak:
 
 1. **Řekni to nahlas.** Jedna věta: *„V tomhle prostředí nemůžu spustit kód, takže počítat nebudu."*
 2. **Nepočítej odhadem.** Neuváděj žádné číslo, které bys musel odhadnout. Radši napiš „nespočítáno" než přibližnou hodnotu bez označení.
-3. **Nabídni dvě cesty:** buď připravíš skript, který si uživatel spustí sám, nebo se rozsah analýzy zúží na to, co jde poctivě zvládnout čtením.
+3. **Nabídni dvě cesty:** buď uživatel o analýzu požádá agenta v prostředí,
+   které umí spouštět kód, nebo se rozsah zúží na to, co jde poctivě zvládnout
+   čtením.
 4. **Kvalitativní část udělej normálně.** Bez počítání pořád zvládneš najít témata, rozpory a to, co se opakuje.
 
 Nikdy nenahrazuj chybějící výpočet tím, že materiál rozsekáš na kousky a budeš je shrnovat po částech. To byl postup z doby malých kontextových oken a dnes jen zanáší chyby.

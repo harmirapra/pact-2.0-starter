@@ -62,7 +62,7 @@ Klíčové poznatky, v čem panuje shoda a v čem ne, doporučení ve dvou až t
 |---|---|
 | panel se týká konkrétního projektu | `0_Projects/<projekt>/expert-panel-RRRR-MM-DD-<téma>.md` |
 | panel je obecný a použiješ ho znovu | zeptej se — nabídni `2_Context/expertise/` |
-| projekt ještě neexistuje | navrhni `pact new <projekt>` a teprve pak ulož |
+| projekt ještě neexistuje | navrhni založení; po potvrzení spusť `pact new <projekt>` jako agent a teprve pak ulož |
 
 Než zapíšeš, ověř, že soubor téhož jména neexistuje; kdyby ano, přidej `-v2`.
 

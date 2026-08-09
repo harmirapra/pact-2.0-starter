@@ -35,7 +35,9 @@ Z popisu nápadu vytěž:
 
 ## Kam výstup patří
 
-Do `0_Projects/<projekt>/PRD.md`. Když projekt ještě neexistuje, navrhni jeho založení příkazem `pact new <projekt>` a zeptej se na typ (`single-root` / `dual-root`) — teprve pak dokument ulož.
+Do `0_Projects/<projekt>/PRD.md`. Když projekt ještě neexistuje, navrhni jeho
+založení a zeptej se na typ (`single-root` / `dual-root`). Po potvrzení spusť
+`pact new <projekt>` jako agent — teprve pak dokument ulož.
 
 **Nikdy neukládej PRD do kódového repozitáře.** Znalostní část projektu žije v PACT (viz `docs/DUAL-ROOT.md`).
 

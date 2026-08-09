@@ -2,7 +2,9 @@
 
 > Základní kontext o tobě. Načítá se prakticky při každé práci, takže sem patří to podstatné a trvalé — ne aktuální úkoly.
 >
-> Tenhle soubor zůstává jen v PACTu — PACT nikdy nezapisuje mimo své repo (`AGENTS.md`), takže se nikam ven needituje ani nekopíruje automaticky. Kdo chce mít tenhle kontext k dispozici i mimo PACT (např. v `~/.claude/CLAUDE.md`), zkopíruje si ho ručně sám.
+> Tenhle soubor zůstává jen v PACTu — `pact sync` ho nekopíruje do
+> konfiguračních cest agentů. Kdo chce mít tenhle kontext k dispozici i mimo
+> PACT (např. v `~/.claude/CLAUDE.md`), zkopíruje si ho ručně sám.
 
 ## Kdo jsem
 

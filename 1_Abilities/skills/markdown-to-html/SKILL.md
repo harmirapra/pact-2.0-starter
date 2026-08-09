@@ -79,7 +79,7 @@ Poznámka k obrázkům: skript je převede, ale odkaz na cizí server znamená, 
 V prostředí bez spouštění kódu HTML **nepiš ručně místo skriptu**. Ručně napsaný výstup vypadá pokaždé jinak a nikdo ho nezkontroluje. Místo toho:
 
 1. řekni, že v tomhle prostředí skript spustit nejde
-2. dej uživateli přesný příkaz, který si spustí sám
+2. řekni uživateli, ať o převod požádá agenta v prostředí, které umí spouštět kód
 3. nabídni, že mezitím projdeš dokument a řekneš, co skript nepřevede
 
 ## Příklad

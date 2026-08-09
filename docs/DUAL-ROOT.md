@@ -93,6 +93,19 @@ Pokud projekt navíc čerpá kontext z vyšší úrovně (`2_Context/expertise/�
 
 `pact link` a `pact promote` nikdy nezakládají kódový repozitář samy — očekávají, že už existuje.
 
+## Založení nového `dual-root` projektu
+
+1. Agent spustí `pact new`; rozhodovací otázku položí CLI a agent ji nekomentuje.
+2. Uživatel potvrdí cestu ke kódu.
+3. Pokud adresář neexistuje, agent ho smí založit.
+4. Agent vypíše `cd <potvrzená-cesta>` a až potom `git init` a případné
+   `gh repo create <potvrzené-jméno> --private --source=.`. Příkazy nespustí;
+   provede je uživatel.
+5. Až je kódové repo hotové, agent ho připojí přes `pact link`.
+
+`pact new` ani `pact link` kódové repo samy nevytvářejí. Založení adresáře je
+práce agenta; inicializace gitu zůstává podle L2 na uživateli.
+
 ## Cena `single-root`, kterou stojí za to znát
 
 Kód uvnitř PACTu sdílí kořen workspace s kontextem a znalostní částí. V praxi to znamená, že cokoli, co kódový nástroj v tom kořeni očekává — konfigurace CI, `package.json`, buildovací skripty — prosakuje do kořene celého PACT repozitáře, ne jen do složky projektu. Není to důvod proti `single-root`; je to cena, kterou má uživatel platit vědomě, ne ji objevit až za pár měsíců.

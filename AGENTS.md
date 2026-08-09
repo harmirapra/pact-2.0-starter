@@ -32,8 +32,9 @@ nebo při editaci dovednosti vždy nejdřív načti relevantní soubory z
 
 ## Dovednosti
 
-Kanonický zdroj: `1_Abilities/skills/`. Každá dovednost = složka se
-`SKILL.md` (YAML frontmatter s `name` + `description`, povinné).
+Kanonický zdroj: `1_Abilities/skills/<název>/SKILL.md`. Každou dovednost
+můžeš prostě přečíst a řídit se jí — registrace v runtime není podmínka.
+`SKILL.md` má povinný YAML frontmatter s `name` + `description`.
 
 Dovednost se aktivuje podle pole `description` v jejím frontmatteru —
 vyber ji podle popisu, nečekej na to, až ji někdo vyjmenuje. Přehled všech
@@ -43,7 +44,8 @@ Adresáře `.agents/`, `.claude/` a `.github/` jsou **generované adaptéry** �
 vytváří je `3_Tools/bin/pact sync` z kanonického zdroje a jsou v
 `.gitignore`. Nikdy do nich needituj ručně a nikdy je necommituj. Změny dělej
 v `1_Abilities/skills/` a v `AGENTS.md`, pak spusť `pact sync` a
-`pact registry`.
+`pact registry`. Některé runtimy dovednosti z adaptérů zaregistrují samy,
+jiné ne; když registrace není dostupná, otevři kanonický `SKILL.md` přímo.
 
 ## PACT není celý ekosystém
 
@@ -107,8 +109,13 @@ přínosu zmizí.
 4. NIKDY nezapisuj tajemství do souborů — patří do `.env` (gitignorováno).
 5. U projektu typu `dual-root` si přečti jeho `PROJECT.md` dřív, než sáhneš na kód.
 6. Po změně dovednosti spusť `pact sync` a `pact registry`.
-7. **PACT nikdy nezapisuje mimo své repo.** `$HOME` je jen ke čtení, a i to jen jako volitelný zdroj s potvrzením uživatele (import identity, `pact-setup` krok 1). Nevymýšlej instalaci zpátky.
+7. **Uživatel mluví, agent obsluhuje.** Uživatel popíše potřebu; příkazy `3_Tools/bin/pact` spouští agent.
+8. Do konfiguračních cest agentů (`~/.claude`, `~/.copilot`, `~/.agents`) PACT nezapisuje. Je to území nástroje, ne workspace.
 
 ## Nastavení / první spuštění
 
-Řekni: "použij dovednost pact-setup".
+Uživatel řekne: *„pomoz mi nastavit tento pact"*. Funguje to i v runtime,
+který dovednost `pact-setup` nezaregistroval — přečti
+`1_Abilities/skills/pact-setup/SKILL.md` a řiď se jím.
+
+Kdykoli později může říct: *„pověz mi, jak používat tento pact"*.

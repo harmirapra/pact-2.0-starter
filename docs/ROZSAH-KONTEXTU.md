@@ -29,7 +29,10 @@ Uživatelská úroveň je dostupná **vždy**, bez ohledu na to, který root má
 
 **Tahle instalace skončila.** Ne proto, že by uživatelská úroveň přestala existovat — pořád existuje a pořád kaskáduje — ale protože zápis do ní mimo repo způsobil víc škody než užitku: vymyšlený obsah zapsaný do skutečného `$HOME` bez potvrzení (N-3), manifest, který se neshodoval se smazanými soubory (N-8), neúplný seznam kontrolovaných cest (N-9), a nakonec pojistku, kterou si agent sám obešel přes `--yes` (N-12). Podrobnosti a rozhodnutí: `uat-nalezy.md`, `fix-brief-03.md`.
 
-**Invariant od `fix-brief-03.md`:** PACT nikdy nezapisuje mimo své repo (`docs/ARCHITECTURE.md`). `$HOME` je pro něj jen ke čtení, a i to jen jako volitelný zdroj s potvrzením — import identity v `pact-setup`, kroku 1, směr **dovnitř** PACTu. Směr **ven** (instalace) nenahrazuje nic — kdo chce mít kontext k dispozici i mimo PACT, zkopíruje si ho ručně.
+`pact sync` nezapisuje do konfiguračních cest agentů v `$HOME`
+(`~/.claude`, `~/.copilot`, `~/.agents`). Import identity v `pact-setup`,
+kroku 1, vede pouze **dovnitř** PACTu. Směr **ven** (instalace) nenahrazuje
+nic — kdo chce mít kontext k dispozici i mimo PACT, zkopíruje si ho ručně.
 
 Výchozí stav čerstvé šablony proto vypadá takto:
 

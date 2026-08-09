@@ -3,6 +3,7 @@ fixtures/fresh/ (nedotcena sablona) a fixtures/filled/ (fiktivne vyplnena),
 a nad skutecnym 'git clone' tohoto repa -- kotva ve skutecnosti, kterou
 zastupne fixtury nemohou nahradit (vada E, fix-brief-02)."""
 
+import re
 import subprocess
 import tempfile
 import unittest
@@ -12,6 +13,39 @@ from helpers import make_sandbox, add_skill, run_pact, git_init_repo, git_add_co
 
 # Koren tohoto repa (PACT-2.0), ne sandboxu -- pro test proti skutecnemu klonu.
 REAL_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def configure_current_branch_upstream(repo):
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=str(repo), check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://example.invalid/pact.git"],
+        cwd=str(repo), check=True,
+    )
+    subprocess.run(
+        ["git", "update-ref", f"refs/remotes/origin/{branch}", "HEAD"],
+        cwd=str(repo), check=True,
+    )
+    subprocess.run(
+        ["git", "branch", "--set-upstream-to", f"origin/{branch}", branch],
+        cwd=str(repo), check=True, capture_output=True, text=True,
+    )
+    return branch
+
+
+class TestWizardConsistency(unittest.TestCase):
+    def test_setup_has_preflight_and_nine_steps(self):
+        setup = (
+            REAL_REPO_ROOT / "1_Abilities" / "skills" / "pact-setup" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("## Preflight (krok 0)", setup)
+        self.assertEqual(
+            re.findall(r"^## Krok ([1-9])\b", setup, flags=re.MULTILINE),
+            [str(number) for number in range(1, 10)],
+        )
 
 
 class TestFreshFixture(unittest.TestCase):
@@ -91,6 +125,38 @@ class TestFilledFixture(unittest.TestCase):
         self.assertIn("2_Context/identity/about-me.md", result.stdout)
         self.assertNotIn("FAIL", result.stdout)
 
+    def test_doctor_warns_when_edited_file_keeps_placeholder(self):
+        git_init_repo(self.repo)
+        git_add_commit(self.repo, "pocatecni kontext (test)")
+        about_me = self.repo / "2_Context" / "identity" / "about-me.md"
+        about_me.write_text(
+            "# O mně\n\nUživatel doplnil tuto část.\n\n[DOPLNIT: zbytek profilu]\n",
+            encoding="utf-8",
+        )
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN  chybí poznámka o zdroji", result.stdout)
+        self.assertIn("2_Context/identity/about-me.md", result.stdout)
+        self.assertNotIn("FAIL", result.stdout)
+
+    def test_doctor_warns_when_untracked_file_keeps_placeholder(self):
+        git_init_repo(self.repo)
+        git_add_commit(self.repo, "pocatecni kontext (test)")
+        new_context = self.repo / "2_Context" / "expertise" / "new-topic.md"
+        new_context.write_text(
+            "# Nové téma\n\nUživatel doplnil tuto část.\n\n[DOPLNIT: detaily]\n",
+            encoding="utf-8",
+        )
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN  chybí poznámka o zdroji", result.stdout)
+        self.assertIn("2_Context/expertise/new-topic.md", result.stdout)
+        self.assertNotIn("FAIL", result.stdout)
+
     def test_doctor_ignores_context_files_without_provenance_requirement(self):
         context = self.repo / "2_Context"
         (context / "stack.md").write_text("Provozní manifest.\n", encoding="utf-8")
@@ -132,7 +198,7 @@ class TestSecretDetection(unittest.TestCase):
 
 
 class TestDoctorChecklistCompleteness(unittest.TestCase):
-    """F9 -- doctor musi implementovat vsech osm aktualnich kontrol
+    """F9 -- doctor musi implementovat vsech devet aktualnich kontrol
     (kontrola $HOME byla zrusena fix-brief-03 a FIX04 pridava provenance),
     a kazda z nich musi v realnem behu skutecne vyprodukovat radek vystupu
     (ne jen existovat nekde v kodu)."""
@@ -147,22 +213,20 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
         self.assertEqual(sync.returncode, 0, sync.stderr)
         git_init_repo(self.repo)
         git_add_commit(self.repo, "pocatecni stav (test)")
-        subprocess.run(
-            ["git", "update-ref", "refs/remotes/origin/main", "main"],
-            cwd=str(self.repo), check=True,
-        )
+        self.branch = configure_current_branch_upstream(self.repo)
 
     def tearDown(self):
         self._tmp.cleanup()
 
-    def test_all_eight_checks_produce_output(self):
+    def test_all_nine_checks_produce_output(self):
         result = run_pact(self.repo, "doctor", home=self.home)
         markers = {
             "nezacommitované změny": ("nezacommitované", "pracovní strom je čistý"),
-            "nepushnuté commity": ("nepushnutých", "synchronizovaný s origin/main"),
+            "nepushnuté commity": ("nepushnutých", f"{self.branch} je synchronizovaný"),
             "placeholdery": ("kontext je vyplněný", "chybí soubory kontextu", "placeholdery"),
             "poznámky o zdroji": ("poznámky o zdroji jsou doplněné", "chybí poznámka o zdroji"),
             "tajemství": ("tajemství",),
+            "frontmatter dovedností": ("frontmatter všech dovedností je validní",),
             "adaptéry v PACT": ("adaptéry odpovídají", "neodpovídá kanonickému zdroji"),
             "osiřelé projekty (code.path)": ("code.path", "žádné projekty"),
             "rozbité odkazy": ("odkazy na neexistující soubory", "rozbitý odkaz"),
@@ -173,6 +237,61 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
                     any(opt in result.stdout for opt in options),
                     f"chybí výstup pro kontrolu '{label}' (3.7): {result.stdout}",
                 )
+
+
+class TestDoctorGitBranch(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp_path = Path(self._tmp.name)
+        self.repo = make_sandbox(self.tmp_path, fixture_name="filled")
+        self.home = self.tmp_path / "home"
+        self.home.mkdir()
+        sync = run_pact(self.repo, "sync", home=self.home)
+        self.assertEqual(sync.returncode, 0, sync.stderr)
+        git_init_repo(self.repo)
+        subprocess.run(
+            ["git", "branch", "-M", "master"],
+            cwd=str(self.repo), check=True,
+        )
+        git_add_commit(self.repo, "pocatecni stav na master (test)")
+        configure_current_branch_upstream(self.repo)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_doctor_uses_current_branch_and_its_upstream(self):
+        result = run_pact(self.repo, "doctor", home=self.home)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("master je synchronizovaný s origin/master", result.stdout)
+
+    def test_doctor_names_current_branch_when_commits_are_ahead(self):
+        (self.repo / "change.md").write_text("nova zmena\n", encoding="utf-8")
+        git_add_commit(self.repo, "nepushnuta zmena (test)")
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(
+            "1 nepushnutých commitů na větvi master proti origin/master",
+            result.stdout,
+        )
+
+    def test_doctor_without_upstream_exits_cleanly(self):
+        subprocess.run(
+            ["git", "config", "--unset", "branch.master.remote"],
+            cwd=str(self.repo), check=True,
+        )
+        subprocess.run(
+            ["git", "config", "--unset", "branch.master.merge"],
+            cwd=str(self.repo), check=True,
+        )
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("synchronizovaný", result.stdout)
+        self.assertNotIn("nepushnutých commitů", result.stdout)
 
 
 class TestNeverSynced(unittest.TestCase):

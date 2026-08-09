@@ -12,7 +12,10 @@ cd pact-2.0
 3_Tools/bin/pact sync
 ```
 
-Pak řekni svému agentovi: *"použij dovednost pact-setup"*.
+Pak řekni svému agentovi: *„pomoz mi nastavit tento pact"*.
+
+Kdykoli později se můžeš zeptat: *„pověz mi, jak používat tento pact"*.
+Příkazy pod tím obslouží agent — ty popisuješ, co potřebuješ.
 
 ## Struktura
 

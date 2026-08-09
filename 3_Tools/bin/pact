@@ -668,6 +668,22 @@ def _check_placeholders():
     return "OK", "kontext je vyplněný"
 
 
+def _differs_from_head(path):
+    if not (REPO_ROOT / ".git").exists():
+        return False
+    try:
+        result = subprocess.run(
+            [
+                "git", "-C", str(REPO_ROOT), "status", "--porcelain", "--",
+                str(path.relative_to(REPO_ROOT)),
+            ],
+            capture_output=True, text=True, timeout=15,
+        )
+        return result.returncode == 0 and bool(result.stdout.strip())
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return False
+
+
 def _check_context_source_notes():
     missing = []
     if not CONTEXT_DIR.is_dir():
@@ -681,7 +697,9 @@ def _check_context_source_notes():
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if "[DOPLNIT" in text or SOURCE_NOTE_RE.search(text):
+        if SOURCE_NOTE_RE.search(text):
+            continue
+        if "[DOPLNIT" in text and not _differs_from_head(path):
             continue
         missing.append(relative)
 
@@ -709,16 +727,33 @@ def _check_git_state():
     except (OSError, subprocess.SubprocessError):
         pass
     try:
+        current = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=15,
+        )
+        upstream = subprocess.run(
+            [
+                "git", "-C", str(REPO_ROOT), "rev-parse", "--abbrev-ref",
+                "--symbolic-full-name", "@{upstream}",
+            ],
+            capture_output=True, text=True, timeout=15,
+        )
+        if current.returncode != 0 or upstream.returncode != 0:
+            return results
+        branch = current.stdout.strip()
+        upstream_name = upstream.stdout.strip()
         ahead = subprocess.run(
-            ["git", "-C", str(REPO_ROOT), "rev-list", "--count", "origin/main..main"],
+            ["git", "-C", str(REPO_ROOT), "rev-list", "--count", "@{upstream}..HEAD"],
             capture_output=True, text=True, timeout=15,
         )
         if ahead.returncode == 0:
             n = int(ahead.stdout.strip() or "0")
             if n > 0:
-                results.append(("WARN", f"{n} nepushnutých commitů"))
+                results.append(
+                    ("WARN", f"{n} nepushnutých commitů na větvi {branch} proti {upstream_name}")
+                )
             else:
-                results.append(("OK", "main je synchronizovaný s origin/main"))
+                results.append(("OK", f"{branch} je synchronizovaný s {upstream_name}"))
     except (OSError, subprocess.SubprocessError, ValueError):
         pass
     return results
