@@ -52,3 +52,22 @@ fungovat i po výměně nástroje pod ním.
 
 Akronym se posunul: **A** znamená **Abilities**, ne Agents. Důvod je v
 `docs/ARCHITECTURE.md`.
+
+## Evoluce od pact-starteru
+
+Zajímá tě, **jak a proč** se PACT-2.0 liší od původní šablony?
+Není to jen seznam zmĕn — jde o architektonická rozhodnutí, jejich rizika
+a tradeoffy.
+
+Čti `docs/EVOLUCE-OD-STARTERU.md` — vysvětluje:
+
+- **Opravy chyb**, které starter dělal tiše (automatické syncing, falešné alarmy)
+- **Standardizace** — transition z Cursor-specifických formátů na otevřené standardy
+  (AGENTS.md, SKILL.md)
+- **Architektonické změny** — dual root, tříúrovňový model, RPI pipeline
+- **Filosofické posuny** — vendor neutralita a princip „doplňuj, nesoutěž"
+- **Vědomá omezení** — co stojí na instrukci místo záruky, co se teprve
+  ověřuje v praxi
+
+Počátkem tady: výchozí nástroj byl Claude Code, cílový horizont je GitHub
+Copilot v bankovním prostředí. Zbytek se odvíjí od toho.
