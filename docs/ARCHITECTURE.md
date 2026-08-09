@@ -87,6 +87,7 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 | Evals a metriky kvality dovedností nejsou součástí | vědomě mimo rozsah v1 |
 | `doctor`, kontrola placeholderů: `OK` neznamená „nastaveno správně" | kontroluje jen nepřítomnost řetězce `[DOPLNIT` — nerozliší obsah napsaný uživatelem od obsahu vymyšleného agentem, a strojově to nejspíš ani nejde (nález N-4, UAT běh 1). `OK` je důkaz nepřítomnosti placeholderů, nic víc. |
 | PACT neručí za to, co agent udělá s gitem sám od sebe | wizard git nespouští, jen vypíše příkazy (`pact-setup`, krok 4) — ale schopnost commitovat nebo pushnout má agent nezávisle na PACTu a šablona ji odebrat nemůže. PACT ručí jen za to, že k tomu sám nevybízí (nález N-13, `fix-brief-03.md`, oddíl L2). |
+| **Tier modelu ovlivňuje zážitek — funkčnost ne** | **Nový:** Schopnost agenta vést dialog, kvalita textu a přirozenost formulací závisejí na tieru modelu (vyšší = lepší). PACT-2.0 funguje technicky stejně na jakémkoli tieru — funkčnost (vrstva 1: `pact doctor`, struktura repozitáře) není ovlivněna. Zážitek (vrstva 2: interaktivita wizardu, kvalita obsahu) ano. UAT běh 5 potvrdil: nižší tier (`auto`) vs. vyšší tier (GPT 5.6 Sol) znamená absence klikatelných možností, strojovější text, tupaší logika otázek. To není vada šablony — je to **vlastnost modelu**. Když si volíš nižší tier z ekonomických důvodů, očekávej kratší konverzace a nižší kvalitu, nikoli rozlomení funkce. Pokud je ti kvalita důležitá, preferuj Claude 3.5 Sonnet (medium reasoning) nebo vyšší. |
 
 ## Zdroje
 

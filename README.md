@@ -17,6 +17,15 @@ Pak řekni svému agentovi: *„pomoz mi nastavit tento pact"*.
 Kdykoli později se můžeš zeptat: *„pověz mi, jak používat tento pact"*.
 Příkazy pod tím obslouží agent — ty popisuješ, co potřebuješ.
 
+### Doporučení: model a tier
+
+PACT-2.0 funguje s jakýmkoli LLM modelem. **Kvalita zážitku závisí na tieru modelu**, kterým agenta provozuješ:
+
+- **Vyšší tier** (např. Claude 3.5 Sonnet se средним reasoning, GPT-4, atd.) — vede dialog, kladie otázky, text je přirozený
+- **Nižší tier** (auto, free tier, ekonomický režim) — funkčnost zůstane, ale wizard bude méně interaktivní a text může být strojovější
+
+To není vada šablony — je to vlastnost modelu. Když volíš nižší tier pro úsporu usage, očekávej **kratší konverzace a nižší kvalitu textu**, nikoli rozlomení funkčnosti. Podrobně viz `docs/ARCHITECTURE.md`, sekce „Vědomá omezení".
+
 ## Struktura
 
 - `0_Projects/` — CO dělám (znalostní část projektů)
