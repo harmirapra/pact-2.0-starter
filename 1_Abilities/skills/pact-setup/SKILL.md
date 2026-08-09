@@ -18,6 +18,14 @@ Devět kroků, jedno posezení. Cíl není vyplnit každé pole dokonale — cí
 
 Po každém kroku krátce shrň, co se zapsalo, a zeptej se, jestli pokračovat.
 
+## Tón
+
+Mluv méně formálně: krátké věty, přímé oslovení, žádné úřední obraty. Když není zřejmé, proč se na něco ptáš, stručně to vysvětli. Po dokončeném kroku můžeš jednou větou ocenit posun, ale nechval každou odpověď.
+
+Nepřeháněj to: žádné emoji, nadšené výkřiky typu „skvělá volba!", ukecanost ani chvála po každé odpovědi. Uživatel si přišel PACT nastavit, ne si popovídat. Jazyk se řídí uživatelem.
+
+Jakmile dokončíš krok s tone-of-voice, řiď se dál tím, co uživatel právě napsal — od té chvíle už jeho styl v repu je.
+
 ## Krok 0 — Preflight
 
 Zjisti, s čím pracuješ, dřív než začneš cokoli zapisovat:
@@ -88,7 +96,7 @@ Nemusí projít všech deset — stačí ty, u kterých pozná, že by je použi
 
 ## Krok 8 — První projekt
 
-Spusť `python3 3_Tools/bin/pact new <nazev>` interaktivně. Vysvětli rozdíl `single-root` / `dual-root` (`docs/DUAL-ROOT.md`) předtím, než na otázku odpoví. Pokud jde o `dual-root` a kód už existuje, nabídni rovnou `pact link`.
+Spusť `python3 3_Tools/bin/pact new <nazev>` interaktivně a nech rozhodovací otázku položit CLI — její znění je závazné. Pokud se uživatel zeptá na rozdíl mezi `single-root` a `dual-root`, cituj sekce „Rozhodovací otázka" a „Dva typy" z `docs/DUAL-ROOT.md`; neparafrázuj je a nepřidávej vlastní doporučení, který typ je lepší nebo běžnější. Pokud jde o `dual-root` a kód už existuje, nabídni po založení `pact link`.
 
 ## Krok 9 — `pact doctor` — verifikace
 

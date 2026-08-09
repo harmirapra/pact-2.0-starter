@@ -589,6 +589,14 @@ SECRET_PATTERNS = [
 # Vada C (fix-brief-01): kontrola rozbitych odkazu na soubory uvnitr repa.
 # [DOPLNIT ...] placeholdery se ze skenu odstrani predem -- nejsou odkaz.
 PLACEHOLDER_BLOCK_RE = re.compile(r"\[DOPLNIT[^\]]*\]")
+SOURCE_NOTE_RE = re.compile(
+    r"(?i)(?:poznámka o zdroji|zdroj)\*{0,2}\s*:|převzato z|napsáno v rozhovoru|"
+    r"(?:vytvořeno|zpracováno) (?:z|na základě) analýzy textů"
+)
+SOURCE_NOTE_EXCLUDED = {
+    Path("stack.md"),
+    Path("quality-criteria.md"),
+}
 # Standardni markdown odkaz [text](cesta) -- ignoruje se http(s)/mailto/kotva.
 MD_LINK_RE = re.compile(r"\[[^\]\n]*\]\(([^)\n]+)\)")
 # Vzor z N-5: odrazka zacinajici holym nazvem souboru se znamou priponou,
@@ -658,6 +666,30 @@ def _check_placeholders():
     if has_placeholder:
         return "WARN", "kontext obsahuje placeholdery — spusť dovednost pact-setup"
     return "OK", "kontext je vyplněný"
+
+
+def _check_context_source_notes():
+    missing = []
+    if not CONTEXT_DIR.is_dir():
+        return "OK", "poznámky o zdroji jsou doplněné"
+
+    for path in sorted(CONTEXT_DIR.rglob("*.md")):
+        relative = path.relative_to(CONTEXT_DIR)
+        if relative in SOURCE_NOTE_EXCLUDED or path.name == "README.md":
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if "[DOPLNIT" in text or SOURCE_NOTE_RE.search(text):
+            continue
+        missing.append(relative)
+
+    if missing:
+        first = missing[0]
+        extra = "" if len(missing) == 1 else f" (+{len(missing) - 1} dalších)"
+        return "WARN", f"chybí poznámka o zdroji v 2_Context/{first}{extra}"
+    return "OK", "poznámky o zdroji jsou doplněné"
 
 
 def _check_git_state():
@@ -806,6 +838,7 @@ def _check_dual_root_projects():
 def cmd_doctor(args):
     checks = []
     checks.append(_check_placeholders())
+    checks.append(_check_context_source_notes())
     checks.extend(_check_git_state())
     checks.append(_check_secrets())
     try:

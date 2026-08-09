@@ -78,6 +78,30 @@ class TestFilledFixture(unittest.TestCase):
         self.assertNotIn("FAIL", result.stdout)
         self.assertNotIn("[DOPLNIT", result.stdout)
 
+    def test_doctor_warns_when_source_note_is_missing(self):
+        about_me = self.repo / "2_Context" / "identity" / "about-me.md"
+        about_me.write_text(
+            "# O mně\n\nVyplněný kontext bez provenance.\n",
+            encoding="utf-8",
+        )
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN  chybí poznámka o zdroji", result.stdout)
+        self.assertIn("2_Context/identity/about-me.md", result.stdout)
+        self.assertNotIn("FAIL", result.stdout)
+
+    def test_doctor_ignores_context_files_without_provenance_requirement(self):
+        context = self.repo / "2_Context"
+        (context / "stack.md").write_text("Provozní manifest.\n", encoding="utf-8")
+        (context / "quality-criteria.md").write_text("Pravidla kvality.\n", encoding="utf-8")
+        (context / "expertise" / "README.md").write_text("Rozcestník.\n", encoding="utf-8")
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("OK    poznámky o zdroji jsou doplněné", result.stdout)
+        self.assertNotIn("chybí poznámka o zdroji", result.stdout)
+
 
 class TestSecretDetection(unittest.TestCase):
     """A7 / A9 FAIL vetev: tajemstvi v trackovanem souboru musi doctor odhalit."""
@@ -108,8 +132,8 @@ class TestSecretDetection(unittest.TestCase):
 
 
 class TestDoctorChecklistCompleteness(unittest.TestCase):
-    """F9 -- doctor musi implementovat vsech sedm kontrol ze sekce 3.7
-    rozhodovaciho dokumentu (osma, kontrola $HOME, zrusena fix-brief-03),
+    """F9 -- doctor musi implementovat vsech osm aktualnich kontrol
+    (kontrola $HOME byla zrusena fix-brief-03 a FIX04 pridava provenance),
     a kazda z nich musi v realnem behu skutecne vyprodukovat radek vystupu
     (ne jen existovat nekde v kodu)."""
 
@@ -131,12 +155,13 @@ class TestDoctorChecklistCompleteness(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def test_all_seven_checks_from_section_3_7_produce_output(self):
+    def test_all_eight_checks_produce_output(self):
         result = run_pact(self.repo, "doctor", home=self.home)
         markers = {
             "nezacommitované změny": ("nezacommitované", "pracovní strom je čistý"),
             "nepushnuté commity": ("nepushnutých", "synchronizovaný s origin/main"),
             "placeholdery": ("kontext je vyplněný", "chybí soubory kontextu", "placeholdery"),
+            "poznámky o zdroji": ("poznámky o zdroji jsou doplněné", "chybí poznámka o zdroji"),
             "tajemství": ("tajemství",),
             "adaptéry v PACT": ("adaptéry odpovídají", "neodpovídá kanonickému zdroji"),
             "osiřelé projekty (code.path)": ("code.path", "žádné projekty"),

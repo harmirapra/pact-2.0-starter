@@ -1,5 +1,30 @@
 # Dual root — typy projektů a vazba na kódový root
 
+## Rozhodovací otázka
+
+`pact new` se ptá:
+
+> *„Bude mít tenhle projekt vlastní repozitář vedle PACTu — protože ho chceš sdílet, zveřejnit, nebo mu dát vlastní život? Nebo zůstane celý uvnitř PACTu?"*
+
+Otázka cílí na to, co v okamžiku zakládání projektu skutečně víš: zda chceš vlastní repozitář kvůli sdílení, zveřejnění nebo samostatnému životu projektu. Smíchat tento rozhodovací signál s jinými vlastnostmi projektu by tě mohlo svést k tomu, že malá utilita skončí ve zbytečném vlastním repu.
+
+## Dva typy
+
+| Typ | Kde žije kód | Repo | Kdy ho zvolit |
+|---|---|---|---|
+| `single-root` | uvnitř PACTu — `3_Tools/`, nebo přímo ve složce projektu | jedno privátní repo PACTu | nechceš pro projekt vlastní repozitář; celý zůstane uvnitř PACTu |
+| `dual-root` | v paralelním rootu vedle PACTu | vlastní, může být public nebo sdílené | chceš projekt zveřejnit, sdílet s někým dalším, nebo mu dát vlastní život |
+
+Uvnitř PACTu se **neptáme, kam přesně kód patří** — platí konvence z `AGENTS.md`: znovupoužitelný nástroj do `3_Tools/`, jinak do složky projektu.
+
+## Co kritérium NENÍ
+
+O typu projektu nerozhoduje:
+
+- velikost projektu,
+- jestli je uživatel začátečník,
+- jestli kód už existuje — to rozhoduje jen o tom, zda po založení použiješ `pact link`.
+
 ## Proč vůbec dva rooty
 
 Kontext a kód mají odlišný životní cyklus:
@@ -10,24 +35,7 @@ Kontext a kód mají odlišný životní cyklus:
 | Jednotka změny | rozhodnutí, znalost | commit, PR, release |
 | Historie slouží | tobě za rok | reviewerovi zítra |
 
-Kdyby žily v jednom repu, každé doladění promptu by zašumělo historii kódu a naopak. Proto existují dva rooty **nezávisle na viditelnosti** repozitáře — viditelnost je jen spolehlivý *ukazatel*, ne *důvod*.
-
-## Rozhodovací otázka
-
-`pact new` se ptá:
-
-> *„Bude mít tenhle projekt vlastní repozitář vedle PACTu — protože ho chceš sdílet, zveřejnit, nebo mu dát vlastní život? Nebo zůstane celý uvnitř PACTu?"*
-
-Otázka cílí na to, co v okamžiku zakládání projektu skutečně víš. Nezávisle odpovídá na dvě různé věci najednou by tě svedlo k tomu, že malá utilita skončí ve zbytečném vlastním repu.
-
-## Dva typy
-
-| Typ | Kde žije kód | Repo | Kdy ho zvolit |
-|---|---|---|---|
-| `single-root` | uvnitř PACTu — `3_Tools/`, nebo přímo ve složce projektu | jedno privátní repo PACTu | projekt zůstává tvůj, nemá vlastní vydávání ani sdílení |
-| `dual-root` | v paralelním rootu vedle PACTu | vlastní, může být public nebo sdílené | chceš projekt zveřejnit, sdílet s někým dalším, nebo mu dát vlastní verzování |
-
-Uvnitř PACTu se **neptáme, kam přesně kód patří** — platí konvence z `AGENTS.md`: znovupoužitelný nástroj do `3_Tools/`, jinak do složky projektu.
+Kdyby žily v jednom repu, každé doladění promptu by zašumělo historii kódu a naopak. Odlišný životní cyklus je **důvod**, proč dva rooty existují; rozhodovacím **pravidlem** je, zda projekt dostane vlastní repozitář kvůli sdílení, zveřejnění nebo samostatnému životu.
 
 ## `PROJECT.md`
 
