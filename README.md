@@ -7,12 +7,27 @@ dovednosti a znalostní část projektů — kód žije v samostatných repozit�
 ## Rychlý start
 
 ```
-git clone <tento repozitář>
-cd pact-2.0
-3_Tools/bin/pact sync
+git clone https://github.com/harmirapra/pact-2.0-starter.git ~/muj-pact
+cd ~/muj-pact
+git remote remove origin
 ```
 
-Pak řekni svému agentovi: *„pomoz mi nastavit tento pact"*.
+Název `muj-pact` je jen příklad — přejmenuj podle potřeby. `~/muj-pact`
+je cesta vztažená k tvému domovskému adresáři, funguje bez ohledu na
+to, odkud příkaz spouštíš. Místo toho můžeš zadat i plnou cestu
+k požadovanému cílovému adresáři, např. `/Users/tvoje-jmeno/Projects/muj-pact`.
+Cílovou složku git vytvoří, pokud ještě neexistuje; pokud existuje,
+musí být prázdná — jinak klonování selže.
+
+Krok `git remote remove origin` je důležitý: odpojí tvou instanci od
+šablony, ze které vznikla. Bez něj by `git push` nebo jiná síťová
+operace omylem mířila do repozitáře šablony, ne do tvého vlastního.
+Pokud chceš svou instanci zálohovat nebo sdílet, založ si vlastní
+remote repozitář a připoj ho zvlášť (`git remote add origin <tvoje-url>`).
+
+Teď spusť svého AI agenta nad touhle novou složkou — ať už otevřením
+nové session ve složce `muj-pact`, nebo spuštěním agenta přímo v ní.
+Pak mu řekni: *„pomoz mi nastavit tento pact"*.
 
 Kdykoli později se můžeš zeptat: *„pověz mi, jak používat tento pact"*.
 Příkazy pod tím obslouží agent — ty popisuješ, co potřebuješ.
