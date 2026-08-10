@@ -91,6 +91,7 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 ## Zdroje
 
+- `docs/EVOLUCE-OD-STARTERU.md` — čím a proč se PACT-2.0 liší od pact-starteru
 - [nowork-ai/pact-starter](https://github.com/nowork-ai/pact-starter) — původní framework
 - [microsoft/hve-core](https://github.com/microsoft/hve-core) — zdroj metodiky RPI
 - [Agent Skills — agentskills.io](https://agentskills.io/home) — standard `SKILL.md`
