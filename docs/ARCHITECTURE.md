@@ -44,7 +44,7 @@ kódu pro `dual-root` projekt. Do konfiguračních cest agentů (`~/.claude`,
 | `2_Context/` | KDO jsem / co dělám? | identita, tone of voice, cíle, expertiza, `stack.md` |
 | `3_Tools/` | S ČÍM? | CLI `pact`, testy |
 
-Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitují — vyrábí je `pact sync` z kanonického zdroje.
+Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitují — vyrábí je `pact sync` z kanonického zdroje. `pact registry` obdobně generuje `1_Abilities/REGISTRY.md` z frontmatteru dovedností.
 
 ## Klíčová rozhodnutí
 
@@ -91,7 +91,7 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 ## Zdroje
 
-- `docs/EVOLUCE-OD-STARTERU.md` — čím a proč se PACT-2.0 liší od pact-starteru
+- `docs/EVOLUCE-OD-STARTERU.md` — čím a proč se PACT-2.0 liší od pact-starteru, včetně integrovaných nástrojů pro zdraví PACTu (sekce 3.4)
 - [nowork-ai/pact-starter](https://github.com/nowork-ai/pact-starter) — původní framework
 - [microsoft/hve-core](https://github.com/microsoft/hve-core) — zdroj metodiky RPI
 - [Agent Skills — agentskills.io](https://agentskills.io/home) — standard `SKILL.md`

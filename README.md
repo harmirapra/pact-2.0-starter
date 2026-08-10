@@ -81,5 +81,9 @@ a tradeoffy.
   (AGENTS.md, SKILL.md)
 - **Architektonické změny** — dual root, tříúrovňový model, RPI pipeline
 - **Filosofické posuny** — vendor neutralita a princip „doplňuj, nesoutěž"
+- **Integrované nástroje pro zdraví PACTu** — `pact sync` (generování adaptérů),
+  `pact doctor` (diagnostika OK/WARN/FAIL), `pact registry` (přehled dovedností
+  aktuální), `daily-tidy` (denní rutina: doctor + úklid + commit) a
+  `plugin-collision-review` (kolize baseline dovedností s pluginy)
 - **Vědomá omezení** — co stojí na instrukci místo záruky, co se teprve
   ověřuje v praxi

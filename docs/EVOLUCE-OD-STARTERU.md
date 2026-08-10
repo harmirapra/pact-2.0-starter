@@ -118,6 +118,25 @@ PACT — což je totéž pravidlo, které drží pohromadě dual root.
   frontmatter Copilot agenta — mechanismus vázaný na jeden nástroj, který
   neutrální dovednost nemá. Vědomě slabší záruka.
 
+### 3.4 · Integrované nástroje pro zdraví PACTu
+
+PACT-2.0 přináší explicitní sadu nástrojů pro údržbu repozitáře — vznikly
+postupně z požadavku na nezávislost na konkrétním AI agentovi a na
+mechanismy, které stav repozitáře samy diagnostikují a pomáhají udržet
+zdravý a zálohovaný:
+
+| Nástroj | Typ | Co dělá |
+|---|---|---|
+| `pact sync` | CLI | generuje adaptéry (`.agents/`, `.claude/`, `.github/`) z kanonického zdroje |
+| `pact doctor` | CLI | diagnostika stavu repozitáře — `OK`/`WARN`/`FAIL` (§ „WARN ≠ FAIL" výše) |
+| `pact registry` | CLI | přegeneruje `1_Abilities/REGISTRY.md`, drží přehled dovedností aktuální |
+| `daily-tidy` | dovednost | denní rutina na vyzvání: `doctor` → úklid výstupů → commit + nabídka pushe |
+| `plugin-collision-review` | dovednost | detekuje kolize baseline dovedností s nainstalovanými pluginy, zapisuje rozhodnutí do `stack.md` |
+
+Společný princip: údržba je **explicitní a na vyzvání**, ne tichá a
+automatická na pozadí (viz `daily-git-sync` v sekci 1) — chyba se má poznat
+hned, ne se najít o týden později.
+
 ---
 
 ## 4 · Filosofické posuny — mění se, co PACT je
