@@ -47,7 +47,7 @@ Výchozí stav čerstvé šablony proto vypadá takto:
 
 **R3: tichá ztráta kontextu při práci v nižším rootu.** Otevřeš-li agenta v podsložce nebo v jiném repu než PACT, uživatelská úroveň se sice pořád načte (kaskáduje), ale bez ruční kopie v ní nic z PACTu není — a dovednosti (`SKILL.md`) se nenačtou vůbec, protože nekaskádují. Nedostaneš chybu, jen horší výstup.
 
-Práce 2 (instalace do `$HOME`) byla navržené ošetření tohohle rizika. Jejím zrušením riziko **nemizí** — jen se vědomě přijímá, protože náklad na ošetření (kontaminace skutečného `$HOME`, viz N-3/N-8/N-9/N-12) byl vyšší než náklad rizika samotného. Náhradní ošetření:
+Instalace do `$HOME` (zrušená ve `fix-brief-03.md`) byla navržené ošetření tohohle rizika. Jejím zrušením riziko **nemizí** — jen se vědomě přijímá, protože náklad na ošetření (kontaminace skutečného `$HOME`, viz N-3/N-8/N-9/N-12) byl vyšší než náklad rizika samotného. Náhradní ošetření:
 
 - **P5 — vstupní bod je vždy PACT.** Nikdy neotvírej kódové repo jako výchozí pracoviště; PACT root je tam, kde dovednosti fungují jistě.
 - **Ruční zkopírování**, když se v konkrétním případě ukáže, že kontext v jiném rootu chybí — je to na uživateli, ne na automatice.
