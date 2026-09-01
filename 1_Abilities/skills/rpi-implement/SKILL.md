@@ -45,6 +45,13 @@ Vychází z: RRRR-MM-DD-<téma>-plan.md
 
 Samotná změna v kódu jde přes `git-safe-change` (větev, diff, PR) — RPI implementaci neobchází, jen ji předchází researchem a plánem.
 
+## Kontext z PACT
+
+- `docs/DUAL-ROOT.md` (u projektů typu `dual-root`) — implementace se
+  odehrává v odděleném kódovém repu, ne v PACT; tenhle soubor jen
+  připomíná, kde. Žádný další kontext z `2_Context/` obvykle netřeba —
+  plán z předchozí fáze ho měl absorbovat, viz `rpi-plan`.
+
 ## Kritické pravidlo: vyčisti kontext před další fází
 
 Fáze Review dostane `*-plan.md` a `*-changes.md` jako soubory, ne tuhle konverzaci. Nová konverzace (v nástrojích s příkazem na vyčištění kontextu, např. `/clear`, ho použij). Review, které vzniklo ve stejné konverzaci jako implementace, má sklon potvrdit vlastní práci místo aby ji nezávisle prověřilo.

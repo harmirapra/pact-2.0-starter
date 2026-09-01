@@ -52,6 +52,14 @@ Vynucuje se instrukcí, ne omezením nástrojů — dovednost nemá jak agentovi
 
 Zkontroluj, že u každého zjištění je odkaz na konkrétní soubor a řádek, ne jen slovní popis. Plán, který na tohle naváže, potřebuje umět zjištění ověřit sám, ne ti věřit na slovo.
 
+## Kontext z PACT
+
+- `0_Projects/<projekt>/architecture.md`, `PRD.md` — přečti nejdřív, než
+  začneš zkoumat kód. Co už je zdokumentované jako rozhodnutí nebo známé
+  omezení, se neresearchuje znovu, jen se ověří, že pořád platí.
+- `2_Context/expertise/` — doména ovlivňuje, jaké otázky vůbec dává smysl
+  klást a čemu věnovat víc pozornosti.
+
 ## Kritické pravidlo: vyčisti kontext před další fází
 
 Fáze Plan **nesmí** dědit tuhle konverzaci. Otevři novou konverzaci (v nástrojích s příkazem na vyčištění kontextu, např. `/clear`, ho použij) a předej jí jen výstupní soubor, ne historii chatu. Nahromaděný kontext způsobí, že Plan podědí tvoje domněnky místo toho, aby si ověřil zjištění sám ze souboru — a to je přesně to, čemu má RPI zabránit.

@@ -50,3 +50,36 @@ Zeptej se, jestli pushnout — u znalostního obsahu PACTu je to obvykle ano, pr
 ## Když narazíš na placeholder, který tam nemá být
 
 Pokud `2_Context/` obsahuje `[DOPLNIT]` už déle než pár dní, připomeň to jednou větou a odkaž na `pact-setup` — ale nevynucuj dokončení uprostřed jinak hotové rutiny.
+
+## Výstup
+
+Na konci rutiny jedno krátké shrnutí, ne hlášení po každém kroku zvlášť:
+
+```markdown
+## Denní úklid RRRR-MM-DD
+- pact doctor: [OK / N × WARN / FAIL — vyřešeno jak]
+- aktualizované projekty: [seznam, nebo "žádné"]
+- cíle: [beze změny / co se změnilo]
+- commit: [zpráva, nebo "nic ke commitu"]
+- push: [ano/ne a proč]
+```
+
+## Příklad
+
+**Vstup:** konec pracovního dne, uživatel řekne "udělej denní úklid".
+
+**Průběh:** `pact doctor` → 1 WARN (chybějící placeholder, zapamatováno,
+nezastavuje). V `0_Projects/klient-x/` přibyl `architecture.md` — odpovídá
+`PRD.md`, úprava netřeba. Cíle beze změny. `git status` ukazuje 2 soubory,
+navržena a potvrzena zpráva "docs(klient-x): zapsat architekturu
+integrace", commit proveden. Push nabídnut a potvrzen.
+
+**Shrnutí:**
+```
+## Denní úklid 2026-09-01
+- pact doctor: 1 WARN (chybí placeholder v 2_Context/goals/, neřešeno dnes)
+- aktualizované projekty: klient-x (nový architecture.md, bez zásahu)
+- cíle: beze změny
+- commit: "docs(klient-x): zapsat architekturu integrace"
+- push: ano
+```

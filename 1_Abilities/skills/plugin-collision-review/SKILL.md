@@ -38,3 +38,21 @@ Postup:
 ## Výstup
 
 Shrnutí ve tvaru: zjištěné kolize a doporučení (ponechat / vyřadit) k rozhodnutí. Po schválení uživatelem zapiš rozhodnutí do `2_Context/stack.md`.
+
+## Příklad
+
+**Vstup:** uživatel nainstaloval plugin `research-assistant` (má vlastní
+vyhledávání a shrnutí dokumentů) a všimne si, že přestala vystřelovat
+baseline dovednost `data-analyst`.
+
+**Průběh:**
+1. V `2_Context/stack.md` zapsáno, že `research-assistant` pokrývá výzkum
+   a shrnutí dokumentů — stejné území jako `data-analyst`.
+2. Otázka uživateli podle tabulky výše: je plugin dostupný všude, kde
+   pracuje (i na druhém stroji, u jiného agenta), nebo jen v tomhle
+   nástroji?
+3. Odpověď: jen v tomhle nástroji → **ponechat `data-analyst` jako
+   pojistku** (princip P13).
+4. Zápis do `2_Context/stack.md`: *„`data-analyst` ponechán navzdory
+   překryvu s pluginem `research-assistant` — plugin není dostupný na
+   druhém stroji, kde Michal taky pracuje (rozhodnuto RRRR-MM-DD)."*

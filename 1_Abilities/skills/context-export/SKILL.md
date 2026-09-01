@@ -37,3 +37,29 @@ Týdně, nebo kdykoli si uživatel všimne, že agentovi něco vysvětluje podru
 ## Co dělat, když se najde hodně najednou
 
 Neukládej všechno jedním zápisem bez rozmyslu. Seřaď podle toho, co bude nejdřív chybět, a projdi to s uživatelem po jednom — je to totéž pravidlo jako u `pact-setup`: raději méně a rozhodnuto, než hodně a domyšleno za uživatele.
+
+## Výstup
+
+Žádný nový soubor navíc — vždy zápis do existujícího cílového souboru podle
+tabulky v kroku 2. Po každém zápisu řekni uživateli jednou větou **co** se
+zapsalo a **kam** (cesta k souboru). Když se nic k zápisu nenajde, řekni to
+taky — "tenhle týden nic trvalého nevzniklo" je platný a užitečný výsledek,
+ne důvod mlčet.
+
+## Příklad
+
+**Vstup:** týdenní kontrola, uživatel řekne "co jsem se tenhle týden dozvěděl".
+
+**Průběh:**
+1. Otázka podle kroku 1.
+2. Uživatel zmíní dvě věci: "zjistil jsem, že klient X chce commity bez
+   emoji" a "u projektu Y jsme se rozhodli pro PostgreSQL kvůli souběžnému
+   přístupu".
+3. Zařazení podle tabulky: první je doménová znalost →
+   `2_Context/expertise/`; druhé je rozhodnutí vázané na projekt →
+   `0_Projects/Y/architecture.md`.
+4. Zápis a potvrzení uživateli: *„Zapsáno: preference klienta X do
+   `2_Context/expertise/`, rozhodnutí o PostgreSQL do
+   `0_Projects/Y/architecture.md`."*
+
+Bez kroku 4 by uživatel nevěděl, jestli se něco opravdu uložilo, nebo jen probralo v konverzaci.

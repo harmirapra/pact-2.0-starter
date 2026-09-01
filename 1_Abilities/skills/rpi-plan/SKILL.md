@@ -48,6 +48,14 @@ Vychází z: RRRR-MM-DD-<téma>-research.md
 - <riziko> — <jak ho plán zmírňuje, nebo že se zmírnit nedá>
 ```
 
+## Kontext z PACT
+
+- `0_Projects/<projekt>/architecture.md` — známá rozhodnutí a omezení,
+  které plán nesmí tiše porušit. Když plán navrhuje něco proti nim, zmiň
+  to jako riziko, neschovávej to.
+- `docs/DUAL-ROOT.md` (u projektů typu `dual-root`) — kód se bude měnit
+  v odděleném kódovém repu, ne v PACT; plán tomu má odpovídat.
+
 ## Kritické pravidlo: vyčisti kontext před další fází
 
 Fáze Implement dostane jen `*-plan.md` jako soubor, ne tuhle konverzaci. Nová konverzace (v nástrojích s příkazem na vyčištění kontextu, např. `/clear`, ho použij). Implement, který podědí diskuzi o plánu místo aby četl hotový plán, může začít improvizovat kroky, které v plánu nejsou.

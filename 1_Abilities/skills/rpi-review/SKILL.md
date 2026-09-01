@@ -48,6 +48,12 @@ PROŠLO / NEPROŠLO — <jednořádkové zdůvodnění>
 
 Nálezy jdou zpátky — buď jako nový krok pro `rpi-implement` (drobná oprava), nebo jako podnět pro nový cyklus `rpi-research`/`rpi-plan` (ukázalo se, že plán stál na chybném předpokladu). Review samo kód neopravuje — to by ho vrátilo do role implementace bez nezávislého ověření.
 
+## Kontext z PACT
+
+- `0_Projects/<projekt>/architecture.md` — kam po úspěšném review zapsat
+  získanou znalost (viz "Uzavření cyklu" níže). Tahle sekce jen
+  formalizuje referenci, samotné zapsání zůstává poslední krok cyklu.
+
 ## Uzavření cyklu
 
 Po úspěšném review shrň v `0_Projects/<projekt>/architecture.md` získanou znalost (povinná retrospektiva z `AGENTS.md`) — RPI proběhlo pro *tenhle* úkol, ale poznatek z něj má přežít i po něm.
