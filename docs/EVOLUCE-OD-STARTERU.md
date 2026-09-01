@@ -176,6 +176,23 @@ ani topologie, ale **cíl a hodnoty** frameworku.
   řiditelná (`SKILL.md` nemá pole pro prioritu), takže se kolize řeší
   **před během** — přes `AGENTS.md` a `plugin-collision-review`, ne za běhu.
 
+### 4.3 · Jazyk dovednosti: mono jazyk těla, dvojjazyčná aktivace
+
+- **Posun:** starter neřešil jazyk dovednosti jako samostatnou otázku vůbec.
+  PACT-2.0 rozlišuje dvě různé věci, které se snadno slijí do jedné: jazyk,
+  ve kterém je **napsané tělo** `SKILL.md`, a jazyk, ve kterém agent **vede
+  interakci** po aktivaci.
+- **Rozhodnutí:** tělo zůstává psané česky, jako jediný autorský zdroj — žádná
+  duplicitní CZ/EN verze k údržbě. Aktivace (pole `description`) ale musí
+  chytit obě jazykové varianty spouštěcí fráze (`skill-builder`, pravidlo #2).
+  Jakmile se dovednost spustí, agent zbytek interakce vede v jazyce vstupu
+  uživatele, ne nutně v jazyce, ve kterém je tělo napsané.
+- **Proč to není totéž co P12:** P12 řeší, **kam** patří pravidlo (jedno
+  místo, `AGENTS.md`, ne 18 kopií). Tohle řeší **v jakém jazyce** to místo
+  mluví k uživateli za běhu — dvě odlišné osy téhož principu „psát jednou,
+  aplikovat opakovaně". Zapsáno jednou v `AGENTS.md` (sekce „Jazyk
+  dovednosti"), ne opakováno v každém `SKILL.md`.
+
 ---
 
 ## 5 · Vědomá omezení, která si PACT-2.0 nechává

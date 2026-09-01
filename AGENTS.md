@@ -107,10 +107,10 @@ Pravidlo palce: *musíš něčemu rozumět, než to implementuješ? → RPI.*
 dřív než začneš psát kód.** Neaplikuj tiše ani jednu variantu sám;
 uživatel má vždycky vidět, že se rozhoduje.
 
-Mezi fázemi **vyčisti kontext** (nová konverzace nebo `/clear`). Je to
-jediný krok RPI, který nezajistí ani agent sám, ani tenhle soubor — bez
-něj RPI degraduje zpátky na řetěz promptů v jedné konverzaci a většina
-přínosu zmizí.
+Mezi fázemi **vyčisti kontext** (nová konverzace — v nástrojích s příkazem
+na vyčištění kontextu, např. `/clear`, ho použij). Je to jediný krok RPI,
+který nezajistí ani agent sám, ani tenhle soubor — bez něj RPI degraduje
+zpátky na řetěz promptů v jedné konverzaci a většina přínosu zmizí.
 
 ## Tvrdá pravidla
 

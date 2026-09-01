@@ -54,11 +54,13 @@ Generované a negitignorované (`.agents/`, `.claude/`, `.github/`) se necommitu
 
 **Dva typy projektů, otočená rozhodovací otázka.** Místo předvídání („vznikne tu kód s vlastním životním cyklem?") se `pact new` ptá na to, co uživatel v okamžiku zakládání skutečně ví: bude mít projekt vlastní repozitář vedle PACTu, nebo zůstane celý uvnitř? Viditelnost je spolehlivý *ukazatel* na jiný životní cyklus, ne jeho *příčina* — dva rooty existují kvůli tempu změn, ne kvůli tomu, jestli je něco veřejné. Podrobně `docs/DUAL-ROOT.md`.
 
-**`pact doctor`: `WARN` ≠ `FAIL`.** Šablona, jejíž hodnotou je onboarding, nemá první příkaz po `git clone` vítat hlášením o selhání. Rozlišovací princip: `WARN` = ještě nenastaveno nebo vědomě odložené (placeholdery, chybějící provenance, nezacommitované či nepushnuté změny), `FAIL` = skutečně rozbité nebo nekonzistentní (tajemství, nevalidní frontmatter, rozjeté adaptéry, mrtvý odkaz).
+**`pact doctor`: `WARN` ≠ `FAIL`.** Šablona, jejíž hodnotou je onboarding, nemá první příkaz po `git clone` vítat hlášením o selhání. Rozlišovací princip: `WARN` = ještě nenastaveno nebo vědomě odložené (placeholdery, chybějící provenance, nezacommitované či nepushnuté změny, nekvalifikovaná vendor-specifická zmínka v dovednosti), `FAIL` = skutečně rozbité nebo nekonzistentní (tajemství, nevalidní frontmatter, rozjeté adaptéry, mrtvý odkaz).
 
 **Triáž dovedností podle jiného kritéria než „co používám".** Šablona se neptá, co konkrétní člověk za měsíc použil — ptá se, co potřebuje cizí čerstvá instance první den, aby byla soběstačná (princip P13). Výsledek: 18 dovedností — 9 baseline z pact-starteru, 1 sklizeň z existující instance (`git-safe-change`), 4 wizard/údržba, 4 RPI. Kompletní přehled i s odůvodněním v `1_Abilities/REGISTRY.md` a v pracovních souborech review.
 
 **Routing je data, a data se ladí (P3).** Pole `description` v každém `SKILL.md` rozhoduje, kdy se dovednost aktivuje — ale popisy v týhle šabloně jsou psané **obecně a záměrně nevyladěné**. Šablona neví, kdo ji naklonuje, jakým jazykem mluví nebo jakou frází si o věc řekne, takže spouštěcí fráze v `description` jsou nutně kompromis, ne finální stav. `pact-setup` (krok 7) proto vede nového uživatele k tomu, aby si u dovedností, které ho zajímají, popis rovnou doladil na vlastní slovník — a `plugin-collision-review` později kontroluje kolize s nainstalovanými pluginy. Routing se nekazí jednou při stavbě šablony; udržuje se průběžně.
+
+**Jazyk dovednosti: dvojjazyčná aktivace, jednojazyčné tělo (`AGENTS.md`).** Spouštěcí fráze v `description` musí chytit češtinu i angličtinu, ale tělo `SKILL.md` zůstává psané česky jako jediný autorský zdroj — dvojjazyčná duplikace celého těla by jen zdvojila údržbu. Jakmile se dovednost aktivuje, agent vede zbytek interakce v jazyce vstupu uživatele, ne nutně v jazyce, ve kterém je tělo napsané. Rozhodnutí je zapsané jednou v `AGENTS.md`, ne opakované v 18 souborech `SKILL.md`.
 
 ## RPI — tři poznámky
 
