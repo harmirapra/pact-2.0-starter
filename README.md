@@ -71,7 +71,7 @@ Akronym se posunul: **A** znamená **Abilities**, ne Agents. Důvod je v
 ## Evoluce od pact-starteru
 
 Zajímá tě, **jak a proč** se PACT-2.0 liší od původní šablony?
-Není to jen seznam zmĕn — jde o architektonická rozhodnutí, jejich rizika
+Není to jen seznam změn — jde o architektonická rozhodnutí, jejich rizika
 a tradeoffy.
 
 Čti `docs/EVOLUCE-OD-STARTERU.md` — vysvětluje:
