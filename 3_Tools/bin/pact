@@ -94,19 +94,37 @@ def _strip_quotes(s):
 
 
 def _strip_comment(line):
-    # odstrani komentar '# ...', jen kdyz # nasleduje po bilem znaku nebo je na zacatku
+    # odstrani komentar '# ...', jen kdyz # nasleduje po bilem znaku nebo je na zacatku,
+    # a nejsme uvnitr uvozovek (jinak by se orizla hodnota obsahujici doslovne '#').
     out = []
     i = 0
+    quote = None
     while i < len(line):
-        if line[i] == "#" and (i == 0 or line[i - 1] in " \t"):
+        ch = line[i]
+        if quote:
+            out.append(ch)
+            if ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch in "\"'":
+            quote = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "#" and (i == 0 or line[i - 1] in " \t"):
             break
-        out.append(line[i])
+        out.append(ch)
         i += 1
     return "".join(out).rstrip()
 
 
 def _consume_block(lines, i, base_indent):
+    # C3: driv hardcodovalo `base_indent + 2` -- pri 4mezerove indentaci (nebo
+    # jinem kroku nez 2) to tise poskodilo obsah (nechalo ve vysledku prebyvajici
+    # mezery). Misto toho odvodime skutecny odsazovaci krok z prvniho radku bloku.
     block = []
+    content_indent = None
     while i < len(lines):
         line = lines[i]
         if not line.strip():
@@ -116,7 +134,9 @@ def _consume_block(lines, i, base_indent):
         indent = len(line) - len(line.lstrip(" "))
         if indent <= base_indent:
             break
-        block.append(line[base_indent + 2:] if len(line) >= base_indent + 2 else line.strip())
+        if content_indent is None:
+            content_indent = indent
+        block.append(line[content_indent:] if indent >= content_indent else line.strip())
         i += 1
     while block and block[-1] == "":
         block.pop()
@@ -439,19 +459,43 @@ Kódová část tohoto projektu není v PACT. Leží v:
 """
 
 
+def _yaml_lite_needs_quote(s):
+    if s == "" or s != s.strip():
+        return True
+    if s in ("[]", ">", "|", ">-", "|-"):
+        return True
+    if s[0] in "\"'>|[{#-":
+        return True
+    if " #" in s:
+        return True
+    return False
+
+
+def _yaml_lite_scalar(value):
+    """Serializuje skalarni hodnotu tak, aby prezila roundtrip pres
+    parse_yaml_lite (viz C5) -- uvozuje hodnoty, ktere by jinak byly
+    spatne interpretovany (rezervovana slova, uvodni specialni znak,
+    okrajovy whitespace, ' #' vypadajici jako komentar)."""
+    s = str(value)
+    if not _yaml_lite_needs_quote(s):
+        return s
+    quote = '"' if '"' not in s else "'"
+    return f"{quote}{s}{quote}"
+
+
 def _dump_frontmatter(data):
     lines = ["---"]
     for key, value in data.items():
         if isinstance(value, dict):
             lines.append(f"{key}:")
             for sub_key, sub_value in value.items():
-                lines.append(f"  {sub_key}: {sub_value}")
+                lines.append(f"  {sub_key}: {_yaml_lite_scalar(sub_value)}")
         elif isinstance(value, list):
             lines.append(f"{key}:")
             for item in value:
-                lines.append(f"  - {item}")
+                lines.append(f"  - {_yaml_lite_scalar(item)}")
         else:
-            lines.append(f"{key}: {value}")
+            lines.append(f"{key}: {_yaml_lite_scalar(value)}")
     lines.append("---")
     return "\n".join(lines)
 
@@ -514,7 +558,17 @@ def cmd_link(args):
     remote = _git_remote_url(code_path_arg)
     rel_path = os.path.relpath(code_path_arg, project_dir)
 
-    data["code"] = {"path": rel_path, "remote": remote or "[DOPLNIT: remote]", "visibility": data.get("code", {}).get("visibility", "[DOPLNIT: viditelnost]") if isinstance(data.get("code"), dict) else "[DOPLNIT: viditelnost]"}
+    existing_code = data.get("code")
+    existing_visibility = (
+        existing_code.get("visibility", "[DOPLNIT: viditelnost]")
+        if isinstance(existing_code, dict)
+        else "[DOPLNIT: viditelnost]"
+    )
+    data["code"] = {
+        "path": rel_path,
+        "remote": remote or "[DOPLNIT: remote]",
+        "visibility": existing_visibility,
+    }
 
     new_body = body
     if "## Dual root" not in body:
@@ -534,6 +588,10 @@ def cmd_link(args):
             ]
         }
         ws_path.write_text(json.dumps(ws_content, indent=2) + "\n", encoding="utf-8")
+        print(
+            f"POZOR: zapisuji mimo tento repozitář (mimo {REPO_ROOT}), "
+            f"není trackováno gitem PACT: {ws_path}"
+        )
         print(f"Vygenerováno: {ws_path}")
 
     return 0
@@ -736,8 +794,10 @@ def _check_git_state():
                 results.append(("WARN", "nezacommitované změny v pracovním stromu"))
             else:
                 results.append(("OK", "pracovní strom je čistý"))
-    except (OSError, subprocess.SubprocessError):
-        pass
+        else:
+            results.append(("WARN", "nepodařilo se zjistit stav pracovního stromu (git status selhal)"))
+    except (OSError, subprocess.SubprocessError) as exc:
+        results.append(("WARN", f"nepodařilo se spustit git status: {exc}"))
     try:
         current = subprocess.run(
             ["git", "-C", str(REPO_ROOT), "rev-parse", "--abbrev-ref", "HEAD"],
@@ -751,6 +811,7 @@ def _check_git_state():
             capture_output=True, text=True, timeout=15,
         )
         if current.returncode != 0 or upstream.returncode != 0:
+            # bez upstreamu neni co porovnavat -- to neni chyba, jen nekonfigurovano.
             return results
         branch = current.stdout.strip()
         upstream_name = upstream.stdout.strip()
@@ -766,8 +827,10 @@ def _check_git_state():
                 )
             else:
                 results.append(("OK", f"{branch} je synchronizovaný s {upstream_name}"))
-    except (OSError, subprocess.SubprocessError, ValueError):
-        pass
+        else:
+            results.append(("WARN", f"nepodařilo se porovnat {branch} s {upstream_name} (git rev-list selhal)"))
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        results.append(("WARN", f"nepodařilo se zjistit stav vůči upstreamu: {exc}"))
     return results
 
 

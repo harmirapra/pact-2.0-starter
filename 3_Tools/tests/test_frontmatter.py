@@ -55,6 +55,12 @@ class TestYamlLite(unittest.TestCase):
         text = "description: |\n  line1\n  line2\n"
         self.assertEqual(pact.parse_yaml_lite(text)["description"], "line1\nline2")
 
+    def test_literal_scalar_with_four_space_indent(self):
+        # C3: driv hardcodovalo krok 2 mezery -- 4mezerova indentace
+        # tise nechavala 2 prebyvajici mezery na kazdem radku hodnoty.
+        text = "description: |\n    line1\n    line2\n"
+        self.assertEqual(pact.parse_yaml_lite(text)["description"], "line1\nline2")
+
     def test_empty_list_marker(self):
         self.assertEqual(pact.parse_yaml_lite("skills: []\n"), {"skills": []})
 
@@ -64,9 +70,44 @@ class TestYamlLite(unittest.TestCase):
     def test_quoted_scalar_unquoted(self):
         self.assertEqual(pact.parse_yaml_lite('name: "foo bar"\n'), {"name": "foo bar"})
 
+    def test_hash_inside_quotes_not_stripped_as_comment(self):
+        # C2: '#' uvnitr uvozovek neni komentar a nesmi orizvat hodnotu.
+        text = 'description: "dela X # neni komentar"\n'
+        self.assertEqual(
+            pact.parse_yaml_lite(text)["description"], "dela X # neni komentar"
+        )
+
     def test_invalid_line_raises(self):
         with self.assertRaises(pact.PactError):
             pact.parse_yaml_lite("not a valid line\n")
+
+
+class TestDumpFrontmatter(unittest.TestCase):
+    def test_plain_values_unquoted(self):
+        dumped = pact._dump_frontmatter({"name": "foo", "type": "bar"})
+        self.assertIn("name: foo", dumped)
+        self.assertIn("type: bar", dumped)
+
+    def test_special_chars_are_quoted_and_roundtrip(self):
+        # C5: hodnoty se specialnimi znaky (>, |, [, {, uvodni '-', ' #')
+        # se musi uvozovat, jinak je dalsi parse_yaml_lite spatne interpretuje.
+        cases = {
+            "path": "[note] see > here | maybe {x}",
+            "note": "- vypada jako polozka seznamu",
+            "comment_like": "hodnota s # uvnitr",
+        }
+        for key, value in cases.items():
+            dumped = pact._dump_frontmatter({key: value})
+            fm_text, _ = pact.split_frontmatter(dumped + "\ntelo\n")
+            parsed = pact.parse_yaml_lite(fm_text)
+            self.assertEqual(parsed[key], value, dumped)
+
+    def test_list_and_nested_dict_values_quoted_when_needed(self):
+        data = {"skills": ["a", "- b"], "code": {"path": "x", "note": "# y"}}
+        dumped = pact._dump_frontmatter(data)
+        fm_text, _ = pact.split_frontmatter(dumped + "\ntelo\n")
+        parsed = pact.parse_yaml_lite(fm_text)
+        self.assertEqual(parsed, data)
 
 
 class TestSplitFrontmatter(unittest.TestCase):

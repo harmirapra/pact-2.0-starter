@@ -189,6 +189,18 @@ class TestProjectLifecycle(BaseSandboxTest):
         data = json.loads(ws_path.read_text(encoding="utf-8"))
         self.assertEqual(len(data["folders"]), 2)
 
+    def test_link_workspace_warns_about_writing_outside_repo(self):
+        # C4: --workspace zapisuje mimo repo (REPO_ROOT.parent), uzivatel
+        # o tom musi byt informovan.
+        code_dir = self.tmp_path / "kod5b"
+        code_dir.mkdir()
+        git_init_repo(code_dir)
+        run_pact(self.repo, "new", "t6b", "--type", "dual-root", "--code-path", str(code_dir), home=self.home)
+        result = run_pact(self.repo, "link", "t6b", "--code-path", str(code_dir), "--workspace", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("POZOR", result.stdout)
+        self.assertIn("mimo", result.stdout)
+
 
 class TestDoctorBasics(BaseSandboxTest):
     def test_doctor_fails_on_invalid_frontmatter(self):
