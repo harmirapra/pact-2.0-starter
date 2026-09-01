@@ -40,12 +40,12 @@ pokračuj; na chybějícím `gh` nikdy nekonči.
 
 ## Krok 1 — Kdo jsi → `2_Context/identity/about-me.md`
 
-**Nejdřív zkontroluj existující identitu, ne až když na ni narazíš náhodou.** Uživatelská úroveň (`~/.claude/CLAUDE.md` a obdobné uživatelem psané soubory) je načtená pořád — je to jistota prostředí, ne výjimka. Než se začneš ptát od nuly:
+**Nejdřív zkontroluj existující identitu, ne až když na ni narazíš náhodou.** Uživatelská úroveň — soubor napsaný přímo uživatelem, ne vygenerovaný (např. `~/.claude/CLAUDE.md` u Claude Code, nebo obdobný soubor jiného nástroje) — je načtená pořád, je to jistota prostředí, ne výjimka. Než se začneš ptát od nuly:
 
-1. Podívej se, jestli existuje soubor jako `~/.claude/CLAUDE.md` — psaný uživatelem, ne vygenerovaný.
+1. Podívej se, jestli takový uživatelem psaný soubor existuje (u Claude Code typicky `~/.claude/CLAUDE.md`; jiné nástroje mají vlastní ekvivalent).
 2. Pokud ano, **ukaž jeho obsah**, navrhni, jak by z něj vycházel `about-me.md`, a **počkej na výslovné potvrzení** — nezapisuj sám, ani po částech.
 3. Pokud uživatel odmítne, nebo takový soubor neexistuje, jdi klasickou cestou: otevři soubor, projdi placeholdery po sekcích (Kdo jsem / Co dělám / Jak se mnou mluvit / Co má agent vědět, aby neplýtval časem) a ptej se po jedné sekci, ne na všechno najednou.
-4. Ať zápis vznikl importem nebo rozhovorem, přidej na konec souboru poznámku o zdroji (např. *„převzato z `~/.claude/CLAUDE.md`, potvrzeno uživatelem [datum]"* nebo *„napsáno v rozhovoru [datum]"*) — za měsíc musí jít poznat, co je čí.
+4. Ať zápis vznikl importem nebo rozhovorem, přidej na konec souboru poznámku o zdroji (např. *„převzato z uživatelského souboru nástroje [jméno], potvrzeno uživatelem [datum]"* nebo *„napsáno v rozhovoru [datum]"*) — za měsíc musí jít poznat, co je čí.
 
 **Tvrdý zákaz zdroje:** `~/.claude/rules/`, `~/.copilot/instructions/`, `~/.agents/skills/` a obdobné cesty **nikdy** nejsou zdroj pro import. Jsou to artefakty vygenerované `pact sync` — čerpat z nich do kanonického zdroje je kruhové a porušuje princip P1 (jeden kanonický zdroj, generované adaptéry). Zdrojem smí být jen soubor, který napsal přímo uživatel.
 

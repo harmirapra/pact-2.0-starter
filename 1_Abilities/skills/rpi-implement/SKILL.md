@@ -47,4 +47,4 @@ Samotná změna v kódu jde přes `git-safe-change` (větev, diff, PR) — RPI i
 
 ## Kritické pravidlo: vyčisti kontext před další fází
 
-Fáze Review dostane `*-plan.md` a `*-changes.md` jako soubory, ne tuhle konverzaci. Nová konverzace nebo `/clear`. Review, které vzniklo ve stejné konverzaci jako implementace, má sklon potvrdit vlastní práci místo aby ji nezávisle prověřilo.
+Fáze Review dostane `*-plan.md` a `*-changes.md` jako soubory, ne tuhle konverzaci. Nová konverzace (v nástrojích s příkazem na vyčištění kontextu, např. `/clear`, ho použij). Review, které vzniklo ve stejné konverzaci jako implementace, má sklon potvrdit vlastní práci místo aby ji nezávisle prověřilo.

@@ -11,7 +11,7 @@ description: >-
 
 # context-export
 
-**Princip, na kterém tahle dovednost stojí (P10):** paměť nástroje — historie konverzací, paměť Claude Desktopu, project knowledge — **není kanonický kontext, je to cache.** Co v ní zůstane a nikam jinam se nezapíše, je ztracené v okamžiku, kdy se cache smaže, obmění nebo přejde se na jiný nástroj.
+**Princip, na kterém tahle dovednost stojí (P10):** paměť nástroje — historie konverzací, dlouhodobá paměť daného AI asistenta, project knowledge — **není kanonický kontext, je to cache.** Co v ní zůstane a nikam jinam se nezapíše, je ztracené v okamžiku, kdy se cache smaže, obmění nebo přejde se na jiný nástroj.
 
 **Cíl není synchronizovat paměť nástroje automaticky — cíl je, aby na ní nezáleželo.**
 

@@ -50,4 +50,4 @@ Vychází z: RRRR-MM-DD-<téma>-research.md
 
 ## Kritické pravidlo: vyčisti kontext před další fází
 
-Fáze Implement dostane jen `*-plan.md` jako soubor, ne tuhle konverzaci. Nová konverzace nebo `/clear`. Implement, který podědí diskuzi o plánu místo aby četl hotový plán, může začít improvizovat kroky, které v plánu nejsou.
+Fáze Implement dostane jen `*-plan.md` jako soubor, ne tuhle konverzaci. Nová konverzace (v nástrojích s příkazem na vyčištění kontextu, např. `/clear`, ho použij). Implement, který podědí diskuzi o plánu místo aby četl hotový plán, může začít improvizovat kroky, které v plánu nejsou.
