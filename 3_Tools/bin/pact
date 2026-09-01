@@ -79,9 +79,7 @@ Pokud na ně nedosáhneš, ŘEKNI MI TO. Nepokračuj bez nich.
 
 
 class PactError(Exception):
-    def __init__(self, message, code=1):
-        super().__init__(message)
-        self.code = code
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -256,6 +254,11 @@ def cmd_registry(args):
     except PactError as exc:
         print(f"CHYBA: {exc}", file=sys.stderr)
         return 1
+
+    if args.dry_run:
+        print("Plánované operace (--dry-run, nic se nezapisuje):")
+        print(f"  regenerovat {REGISTRY_PATH.relative_to(REPO_ROOT)} ({len(skills)} dovedností)")
+        return 0
 
     today = datetime.date.today().isoformat()
     lines = [
@@ -921,6 +924,7 @@ def build_parser():
     p_sync.set_defaults(func=cmd_sync)
 
     p_registry = sub.add_parser("registry", help="vygeneruje 1_Abilities/REGISTRY.md")
+    p_registry.add_argument("--dry-run", action="store_true", help="vypíše plánované operace, nezapisuje")
     p_registry.set_defaults(func=cmd_registry)
 
     p_new = sub.add_parser("new", help="založí nový projekt")

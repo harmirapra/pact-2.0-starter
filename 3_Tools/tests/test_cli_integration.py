@@ -87,6 +87,13 @@ class TestRegistry(BaseSandboxTest):
         self.assertIn("bbb-skill", registry)
         self.assertIn("Generováno", registry)
 
+    def test_registry_dry_run_writes_nothing(self):
+        add_skill(self.repo, "aaa-skill")
+        result = run_pact(self.repo, "registry", "--dry-run", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Plánované operace", result.stdout)
+        self.assertFalse((self.repo / "1_Abilities" / "REGISTRY.md").exists())
+
     def test_registry_invalid_frontmatter_exits_1(self):
         skill_dir = self.repo / "1_Abilities" / "skills" / "broken"
         skill_dir.mkdir(parents=True)
