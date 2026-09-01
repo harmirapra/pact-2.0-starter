@@ -8,7 +8,8 @@ description: >-
   před odesláním", "je to hotové?", "zpětná vazba na text", "quality gate",
   "check this", "review this before I send it". Použij taky sám od sebe na konci
   delšího workflow, které něco produkuje.
-  Nepoužívej na kontrolu kódu v gitu — na to je git-safe-change.
+  Nepoužívej na review implementace proti plánu (git diff, RPI cyklus) —
+  na to je rpi-review.
 ---
 
 # Quality gate

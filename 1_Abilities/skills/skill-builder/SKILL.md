@@ -72,7 +72,7 @@ Tohle je jádro celé dovednosti. Čti pozorně.
 ### Pravidla
 
 1. **Buď štědrý na spouštěče.** Vypiš každou frázi a situaci, která má dovednost aktivovat. Agenti spíš nespustí, než aby spustili zbytečně.
-2. **Česky i anglicky.** Uživatel střídá jazyky uprostřed práce a dovednost musí chytit obojí.
+2. **Česky i anglicky.** Uživatel střídá jazyky uprostřed práce a dovednost musí chytit obojí. Tohle platí pro spouštěcí fráze v `description` — netýká se to těla dovednosti. Tělo piš česky jako jediný zdroj (žádná duplicitní CZ/EN verze); jakmile se dovednost aktivuje, agent ji vede v jazyce, kterým mluví uživatel, viz `AGENTS.md` sekce "Jazyk dovednosti".
 3. **Piš fráze, které uživatel skutečně říká.** Ne oficiální název funkce. Když si o věc říká „projeď mi to", patří do popisu „projeď mi to".
 4. **Uveď, kdy dovednost nepoužít.** Zabrání to falešným spuštěním na sousedním území.
 5. **Padesát až sto padesát slov.** Míň nestačí na spouštěče, víc zbytečně zabírá kontext.

@@ -6,6 +6,8 @@ description: >-
   Use when: uživatel řekne "zkontroluj tu implementaci", "rpi review",
   "review the changes", "did this actually work", nebo odevzdá hotový
   `*-changes.md` a chce uzavřít cyklus RPI.
+  Nepoužívej na obecnou kontrolu textu/výstupu bez vazby na implementační
+  plán — na to je quality-gate.
 ---
 
 # RPI — Review

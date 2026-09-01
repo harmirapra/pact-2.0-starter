@@ -47,6 +47,17 @@ v `1_Abilities/skills/` a v `AGENTS.md`, pak spusť `pact sync` a
 `pact registry`. Některé runtimy dovednosti z adaptérů zaregistrují samy,
 jiné ne; když registrace není dostupná, otevři kanonický `SKILL.md` přímo.
 
+### Jazyk dovednosti
+
+Aktivace (pole `description`) je dvojjazyčná už dnes — spouštěcí fráze
+musí chytit češtinu i angličtinu (`skill-builder`, pravidlo #2). To ale
+neznamená dvojjazyčné tělo. Tělo `SKILL.md` je psané česky jako jediný
+autorský zdroj (žádná duplicitní CZ/EN verze k údržbě), ale **jakmile se
+dovednost aktivuje, veď zbytek interakce — otázky, mezikroky, výstup — v
+jazyce, kterým mluví uživatel/vstup**, ne nutně v jazyce, ve kterém je
+napsané tělo souboru. Stejný princip, jakým se řídí i tahle instance PACT
+sama vůči svému vlastnímu obsahu.
+
 ## PACT není celý ekosystém
 
 Ne všechno, co agent pro práci potřebuje, je v tomhle repu. Část schopností

@@ -284,6 +284,33 @@ class TestDoctorBasics(BaseSandboxTest):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn("FAIL", result.stdout)
 
+    def test_doctor_warns_on_unqualified_vendor_mention_in_skill(self):
+        add_skill(
+            self.repo, "vendor-locked",
+            extra_body="Po dokoncenych krocich spust `/clear` a pokracuj.\n",
+        )
+        run_pact(self.repo, "sync", home=self.home)
+        git_init_repo(self.repo)
+        git_add_commit(self.repo, "pridat vendor-specifickou dovednost (test)")
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN", result.stdout)
+        self.assertIn("vendor-locked", result.stdout)
+
+    def test_doctor_does_not_warn_on_qualified_vendor_example(self):
+        add_skill(
+            self.repo, "vendor-example",
+            extra_body="U Claude Code typicky spustis `/clear`; jiny nastroj ma vlastni ekvivalent.\n",
+        )
+        run_pact(self.repo, "sync", home=self.home)
+        git_init_repo(self.repo)
+        git_add_commit(self.repo, "pridat kvalifikovany priklad (test)")
+
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("vendor-example", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,8 @@ description: >-
   soubory", "najdi trendy", "shrň mi tyhle dokumenty", "kolik toho je", "udělej z toho
   přehled", "analyze this data", "find patterns in these files".
   Nepoužívej na jeden krátký dokument — na ten stačí obyčejné shrnutí.
+  Nepoužívej na hromadu zdrojů k jednomu tématu, kde chceš znalostní výtah
+  a rozhodovací pravidla — na to je knowledge-extractor.
 ---
 
 # Data analyst

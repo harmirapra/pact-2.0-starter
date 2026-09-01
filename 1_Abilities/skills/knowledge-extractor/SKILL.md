@@ -8,6 +8,7 @@ description: >-
   "vytáhni z toho podstatné", "nastuduj to a shrň mi pravidla", "chci z toho udělat
   dovednost", "extract knowledge from these sources", "build a knowledge base from this".
   Nepoužívej na jeden dokument — na ten stačí obyčejné shrnutí.
+  Nepoužívej na číselná/tabulková data — na to je data-analyst.
 ---
 
 # Knowledge extractor

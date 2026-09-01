@@ -927,6 +927,44 @@ def _check_broken_links():
     return "OK", "žádné odkazy na neexistující soubory"
 
 
+# Vendor-specificke retezce, ktere se v korpusu dovednosti objevily jako
+# skutecne poruseni vendor-neutrality (viz audit-zprava.md, sekce 4).
+# Kvalifikatory znamenaji, ze stejny radek uz zminku ramuje jako explicitni
+# priklad pro konkretni nastroj (napr. "u Claude Code"), ne jako univerzalni
+# instrukci -- takove radky se nehlasi.
+VENDOR_TERMS = ("/clear", "claude desktop")
+VENDOR_EXAMPLE_QUALIFIERS = (
+    "např", "u claude", "u copilot", "u cursor", "ekvivalent",
+    "jiný nástroj", "jiného nástroje", "konkrétní nástroj", "příklad",
+)
+
+
+def _check_vendor_neutrality():
+    """C-audit sekce 4: dovednosti se prezentuji jako multi-nastrojove,
+    takze holy (nekvalifikovany) vendor-specificky text je obsahova chyba,
+    kterou zadny test nezachyti. WARN, ne FAIL (D-13) -- jde o heuristiku
+    s moznymi falesnymi poplachy, ne o jistou chybu."""
+    hits = []
+    for skill_dir in iter_skill_dirs():
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.is_file():
+            continue
+        try:
+            text = skill_md.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for line in text.split("\n"):
+            lower = line.lower()
+            for term in VENDOR_TERMS:
+                if term in lower and not any(q in lower for q in VENDOR_EXAMPLE_QUALIFIERS):
+                    hits.append(f"{skill_dir.name}: '{term}'")
+    if hits:
+        first = hits[0]
+        extra = "" if len(hits) == 1 else f" (+{len(hits) - 1} dalších)"
+        return "WARN", f"možná vendor-specifická zmínka bez rámce příkladu: {first}{extra}"
+    return "OK", "žádné nekvalifikované vendor-specifické zmínky v dovednostech"
+
+
 def _check_dual_root_projects():
     if not PROJECTS_DIR.is_dir():
         return "OK", "žádné projekty"
@@ -964,6 +1002,7 @@ def cmd_doctor(args):
         checks.append(("FAIL", f"nevalidní/chybějící frontmatter: {exc}"))
     checks.append(_check_adapters())
     checks.append(_check_broken_links())
+    checks.append(_check_vendor_neutrality())
     checks.append(_check_dual_root_projects())
 
     has_fail = False
