@@ -202,9 +202,24 @@ class TestDoctorBasics(BaseSandboxTest):
 
     def test_doctor_reports_no_broken_links_by_default(self):
         run_pact(self.repo, "sync", home=self.home)
+        git_init_repo(self.repo)
+        git_add_commit(self.repo, "init (test)")
         result = run_pact(self.repo, "doctor", home=self.home)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("žádné odkazy na neexistující soubory", result.stdout)
+        self.assertIn("žádné tajemství v trackovaných souborech", result.stdout)
+
+    def test_doctor_warns_instead_of_false_ok_outside_git_repo(self):
+        """C1: mimo git repozitar nelze zjistit trackovane soubory -- kontroly
+        tajemstvi a rozbitych odkazu musi na to upozornit (WARN), ne tise
+        nahlasit OK, jako by bylo vsechno zkontrolovano."""
+        run_pact(self.repo, "sync", home=self.home)
+        result = run_pact(self.repo, "doctor", home=self.home)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN  nelze zkontrolovat tajemství", result.stdout)
+        self.assertIn("WARN  nelze zkontrolovat odkazy", result.stdout)
+        self.assertNotIn("žádné tajemství v trackovaných souborech", result.stdout)
+        self.assertNotIn("žádné odkazy na neexistující soubory", result.stdout)
 
     def test_doctor_fails_on_broken_markdown_link(self):
         readme = self.repo / "2_Context" / "expertise" / "README.md"

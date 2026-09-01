@@ -609,20 +609,29 @@ BULLET_FILE_RE = re.compile(
 
 
 def _git_tracked_files():
+    """Vrací seznam trackovaných souborů, nebo None, pokud REPO_ROOT není git
+    repozitář nebo 'git ls-files' selhalo. Volající musí None odlišit od
+    legitimně prázdného seznamu -- jinak selhání kontroly tiše vypadá jako
+    "nic k nahlášení" (viz nález C1)."""
+    if not _is_git_repo(REPO_ROOT):
+        return None
     try:
         out = subprocess.run(
             ["git", "-C", str(REPO_ROOT), "ls-files"],
             capture_output=True, text=True, timeout=15,
         )
         if out.returncode != 0:
-            return []
+            return None
         return [REPO_ROOT / p for p in out.stdout.splitlines() if p]
     except (OSError, subprocess.SubprocessError):
-        return []
+        return None
 
 
 def _check_secrets():
-    for path in _git_tracked_files():
+    tracked = _git_tracked_files()
+    if tracked is None:
+        return "WARN", "nelze zkontrolovat tajemství: cesta není git repozitář nebo 'git ls-files' selhalo"
+    for path in tracked:
         if not path.is_file():
             continue
         try:
@@ -808,11 +817,15 @@ def _check_adapters():
 
 def _find_broken_links():
     """Vrati seznam (relativni_cesta_zdroje, odkazovana_cesta) pro odkazy,
-    jejichz cil v repu neexistuje. Skenuje jen trackovane .md soubory --
-    generovane adaptery (.claude/, .github/, .agents/) jsou kopie a
-    kontrolovaly by totez vicekrat."""
+    jejichz cil v repu neexistuje, nebo None, pokud trackovane soubory nelze
+    zjistit (neni git repozitar / 'git ls-files' selhalo -- viz C1). Skenuje
+    jen trackovane .md soubory -- generovane adaptery (.claude/, .github/,
+    .agents/) jsou kopie a kontrolovaly by totez vicekrat."""
+    tracked = _git_tracked_files()
+    if tracked is None:
+        return None
     broken = []
-    for path in _git_tracked_files():
+    for path in tracked:
         if path.suffix != ".md" or not path.is_file():
             continue
         try:
@@ -839,6 +852,8 @@ def _find_broken_links():
 
 def _check_broken_links():
     broken = _find_broken_links()
+    if broken is None:
+        return "WARN", "nelze zkontrolovat odkazy: cesta není git repozitář nebo 'git ls-files' selhalo"
     if broken:
         rel_path, target = broken[0]
         extra = "" if len(broken) == 1 else f" (+{len(broken) - 1} dalších)"
