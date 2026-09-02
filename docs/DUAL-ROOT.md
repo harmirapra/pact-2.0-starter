@@ -37,6 +37,8 @@ Kontext a kód mají odlišný životní cyklus:
 
 Kdyby žily v jednom repu, každé doladění promptu by zašumělo historii kódu a naopak. Odlišný životní cyklus je **důvod**, proč dva rooty existují; rozhodovacím **pravidlem** je, zda projekt dostane vlastní repozitář kvůli sdílení, zveřejnění nebo samostatnému životu.
 
+**Kritérium v jedné větě:** vlastní repozitář (`dual-root`) patří artefaktu, který má — nebo bude pravděpodobně mít — **publikum nezávislé na PACTu**, ať už jde o publikum známé (konkrétní spolupracovníci, tým), nebo anonymní (kdokoli si repo může naklonovat nebo prohlédnout, aniž má PACT). Sdílení, zveřejnění a „vlastní život" z rozhodovací otázky výše jsou tři konkrétní podoby týhle jedné podmínky — ne tři nezávislá kritéria. Bez takového publika zůstává projekt uvnitř PACTu jako `single-root`.
+
 ## `PROJECT.md`
 
 ### `single-root`
